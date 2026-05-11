@@ -1,0 +1,6 @@
+@LifeTrack.AuditService_HostAddress = http://localhost:5125
+
+GET {{LifeTrack.AuditService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
