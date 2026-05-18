@@ -1,0 +1,128 @@
+<!-- audit.component.html -->
+<style>
+.audit-filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;align-items:flex-end;}
+.audit-filter-group{display:flex;flex-direction:column;gap:4px;}
+.audit-filter-group label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.04em;}
+.audit-filter-group input,.audit-filter-group select{padding:6px 10px;border:1px solid #dde1f0;border-radius:7px;font-size:13px;color:#1a1a2e;background:#fff;min-width:140px;}
+.audit-btn{padding:6px 14px;border-radius:7px;font-size:13px;cursor:pointer;border:none;font-weight:500;}
+.audit-btn-primary{background:#1a3a8f;color:#fff;}
+.audit-btn-primary:hover{background:#152f75;}
+.audit-btn-ghost{background:transparent;border:1px solid #dde1f0;color:#555;}
+.audit-btn-ghost:hover{background:#f7f8fc;}
+.audit-pagination{display:flex;align-items:center;gap:12px;margin-top:14px;justify-content:flex-end;font-size:13px;color:#555;}
+.audit-pagination button{padding:5px 12px;border-radius:6px;border:1px solid #dde1f0;background:#fff;cursor:pointer;font-size:12px;}
+.audit-pagination button:disabled{opacity:0.4;cursor:not-allowed;}
+.detail-cell{font-size:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#666;}
+.entity-cell{font-family:'DM Mono',monospace;font-size:12px;color:#555;}
+.time-cell{white-space:nowrap;font-size:12px;color:#888;}
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <a routerLink="/dashboard">LifeTrack</a>
+        <span class="sep">/</span>
+        <span class="current">Audit Log</span>
+      </div>
+    </div>
+
+    <div class="lt-content">
+      <div class="lt-page-header">
+        <div class="lt-page-title">Audit Log</div>
+        <div class="lt-page-subtitle">{{ totalLogs }} total entries</div>
+      </div>
+
+      <!-- ── Filters ──────────────────────────────────────────── -->
+      <div class="audit-filters">
+        <div class="audit-filter-group">
+          <label>Action</label>
+          <select [(ngModel)]="filterAction">
+            <option value="">All actions</option>
+            <option value="LOGIN">Login</option>
+            <option value="CREATE">Create</option>
+            <option value="UPDATE">Update</option>
+            <option value="DELETE">Delete</option>
+          </select>
+        </div>
+        <div class="audit-filter-group">
+          <label>Entity type</label>
+          <select [(ngModel)]="filterEntityType">
+            <option value="">All entities</option>
+            <option value="User">User</option>
+            <option value="Patient">Patient</option>
+            <option value="Protocol">Protocol</option>
+            <option value="Site">Site</option>
+            <option value="Enrollment">Enrollment</option>
+            <option value="Visit">Visit</option>
+            <option value="AdverseEvent">Adverse Event</option>
+            <option value="Deviation">Deviation</option>
+            <option value="KPIReport">KPI Report</option>
+          </select>
+        </div>
+        <div class="audit-filter-group">
+          <label>From date</label>
+          <input type="date" [(ngModel)]="filterFromDate" />
+        </div>
+        <div class="audit-filter-group">
+          <label>To date</label>
+          <input type="date" [(ngModel)]="filterToDate" />
+        </div>
+        <div class="audit-filter-group" style="justify-content:flex-end;">
+          <label>&nbsp;</label>
+          <div style="display:flex;gap:8px;">
+            <button class="audit-btn audit-btn-primary" (click)="applyFilters()">Search</button>
+            <button class="audit-btn audit-btn-ghost" (click)="clearFilters()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lt-loading-row" *ngIf="isLoading">
+        <span class="lt-spinner"></span> Loading...
+      </div>
+
+      <!-- ── Table ─────────────────────────────────────────────── -->
+      <div class="lt-table-wrap" *ngIf="!isLoading">
+        <table class="lt-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Timestamp</th>
+              <th>User ID</th>
+              <th>Action</th>
+              <th>Entity</th>
+              <th>Entity ID</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let log of logs; let i = index">
+              <td class="cell-muted" style="font-size:12px;">{{ ((page - 1) * pageSize) + i + 1 }}</td>
+              <td class="time-cell">{{ log.actionTime | date:'dd MMM yyyy, HH:mm:ss' }}</td>
+              <td class="cell-muted" style="font-size:12px;">{{ log.userID }}</td>
+              <td>
+                <span class="lt-badge" [ngClass]="getActionBadge(log.action)">{{ log.action }}</span>
+              </td>
+              <td class="entity-cell">{{ log.entityType || '—' }}</td>
+              <td class="cell-muted" style="font-size:12px;">{{ log.entityID || '—' }}</td>
+              <td class="detail-cell" [title]="log.details">{{ log.details || '—' }}</td>
+            </tr>
+            <tr *ngIf="logs.length === 0">
+              <td colspan="7" class="cell-empty">No audit records found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ── Pagination ─────────────────────────────────────────── -->
+      <div class="audit-pagination" *ngIf="!isLoading && totalLogs > pageSize">
+        <button (click)="prevPage()" [disabled]="page === 1">← Prev</button>
+        <span>Page {{ page }} · {{ totalLogs }} total</span>
+        <button (click)="nextPage()" [disabled]="logs.length < pageSize">Next →</button>
+      </div>
+
+    </div>
+  </div>
+</div>

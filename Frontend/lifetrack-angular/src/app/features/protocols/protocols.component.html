@@ -1,0 +1,323 @@
+<!-- protocols.component.html -->
+<style>
+.proto-tabs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;}
+.proto-tab{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:50px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid #dde1f0;background:#fff;color:#555;transition:all 0.15s;white-space:nowrap;}
+.proto-tab:hover{border-color:#1a3a8f;color:#1a3a8f;}
+.proto-tab.active{background:#1a3a8f;color:#fff;border-color:#1a3a8f;}
+.proto-tab .count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(255,255,255,0.25);color:inherit;}
+.proto-tab:not(.active) .count{background:#f0f2f8;color:#1a3a8f;}
+.proto-phase-pill{display:inline-block;font-size:11px;padding:3px 10px;border-radius:20px;background:#e6f1fb;color:#185fa5;font-weight:500;}
+.proto-actions{display:flex;gap:6px;align-items:center;}
+.proto-btn-view{padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid #dde1f0;background:transparent;color:#555;cursor:pointer;}
+.proto-btn-view:hover{background:#f7f8fc;}
+.proto-btn-edit{padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid #185fa5;background:transparent;color:#185fa5;cursor:pointer;}
+.proto-btn-edit:hover{background:#e6f1fb;}
+.proto-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,20,50,0.45);display:flex;align-items:center;justify-content:center;padding:16px;}
+.proto-modal{background:#fff;border-radius:14px;width:100%;max-width:560px;box-shadow:0 8px 40px rgba(0,0,0,0.18);display:flex;flex-direction:column;max-height:90vh;overflow:hidden;}
+.proto-modal-lg{max-width:640px;}
+.proto-modal-head{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid #e9ebf4;flex-shrink:0;}
+.proto-modal-head-text{flex:1;min-width:0;}
+.proto-modal-title{font-size:17px;font-weight:600;color:#1a1a2e;margin:0 0 2px;}
+.proto-modal-sub{font-size:13px;color:#999;margin:0;}
+.proto-modal-x{flex-shrink:0;margin-left:12px;width:30px;height:30px;border-radius:7px;border:none;background:none;cursor:pointer;font-size:16px;color:#bbb;display:flex;align-items:center;justify-content:center;}
+.proto-modal-x:hover{background:#f0f2f8;color:#444;}
+.proto-modal-body{padding:20px 24px;overflow-y:auto;flex:1;}
+.proto-modal-foot{padding:14px 24px;border-top:1px solid #e9ebf4;flex-shrink:0;}
+.proto-foot-right{display:flex;justify-content:flex-end;gap:10px;}
+.proto-foot-split{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.proto-foot-danger{display:flex;gap:8px;}
+.proto-foot-main{display:flex;gap:8px;}
+.proto-btn-cancel{padding:7px 18px;font-size:13px;border-radius:7px;border:1px solid #dde1f0;background:transparent;color:#555;cursor:pointer;}
+.proto-btn-cancel:hover{background:#f7f8fc;}
+.proto-btn-save{padding:7px 18px;font-size:13px;border-radius:7px;border:none;background:#1a3a8f;color:#fff;font-weight:500;cursor:pointer;}
+.proto-btn-save:hover{background:#152f75;}
+.proto-btn-save:disabled{opacity:0.5;cursor:not-allowed;}
+.proto-btn-archive{padding:7px 14px;font-size:13px;border-radius:7px;border:1px solid #d97706;background:transparent;color:#92400e;cursor:pointer;}
+.proto-btn-archive:hover{background:#fff8e1;}
+.proto-btn-delete{padding:7px 14px;font-size:13px;border-radius:7px;border:1px solid #e24b4a;background:transparent;color:#a32d2d;cursor:pointer;}
+.proto-btn-delete:hover{background:#fff0f0;}
+.proto-btn-del-dis{padding:7px 14px;font-size:13px;border-radius:7px;border:1px solid #e0e0e0;background:transparent;color:#ccc;cursor:not-allowed;}
+.proto-tooltip-wrap{position:relative;display:inline-flex;}
+.proto-tooltip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;font-size:11px;padding:5px 10px;border-radius:5px;white-space:nowrap;z-index:9999;pointer-events:none;}
+.proto-tooltip-wrap:hover .proto-tooltip{display:block;}
+.proto-detail-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #e9ebf4;border-radius:10px;overflow:hidden;margin-bottom:16px;}
+.proto-detail-cell{display:flex;flex-direction:column;padding:12px 16px;border-bottom:1px solid #e9ebf4;}
+.proto-detail-cell:nth-child(odd){border-right:1px solid #e9ebf4;}
+.proto-detail-cell:nth-last-child(-n+2){border-bottom:none;}
+.proto-detail-lbl{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;}
+.proto-detail-val{font-weight:500;color:#1a1a2e;font-size:13px;}
+.proto-phases-title{font-size:10px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;}
+.proto-phase-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#f7f8fc;border:1px solid #e9ebf4;border-radius:8px;margin-bottom:6px;font-size:13px;}
+.proto-phase-num{font-weight:600;color:#1a1a2e;min-width:70px;}
+.proto-phase-dates{color:#666;flex:1;text-align:center;font-size:12px;}
+.proto-section-div{font-size:10px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.06em;border-top:1px solid #e9ebf4;padding-top:14px;margin:16px 0 12px;}
+.proto-phase-card{background:#f7f8fc;border:1px solid #e2e4ef;border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.proto-phase-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.proto-phase-card-title{font-size:13px;font-weight:600;color:#1a1a2e;}
+.proto-hint{font-size:11px;color:#aaa;margin-top:3px;display:block;}
+.proto-err{font-size:11px;color:#d94f4f;margin-top:3px;display:block;}
+.proto-locked{opacity:0.55!important;cursor:not-allowed!important;background:#ececec!important;}
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <a routerLink="/dashboard">LifeTrack</a><span class="sep">/</span><span class="current">Protocols</span>
+      </div>
+      <div class="lt-topbar-right">
+        <button class="lt-btn lt-btn-primary" (click)="showCreate=true; resetForm()" *ngIf="canEdit">+ New Protocol</button>
+      </div>
+    </div>
+    <div class="lt-content">
+      <div class="lt-page-header">
+        <div class="lt-page-title">Protocols</div>
+        <div class="lt-page-subtitle">{{ filtered.length }} protocols on record</div>
+      </div>
+      <div class="lt-alert lt-alert-success" *ngIf="successMsg">{{ successMsg }}</div>
+      <div class="lt-alert lt-alert-error" *ngIf="errorMsg && !showCreate && !showEdit">{{ errorMsg }}</div>
+
+      <div class="proto-tabs">
+        <button class="proto-tab" [class.active]="activeTab==='all'" (click)="switchTab('all')">All protocols <span class="count">{{ countFor('all') }}</span></button>
+        <button class="proto-tab" [class.active]="activeTab==='upcoming'" (click)="switchTab('upcoming')">Upcoming <span class="count">{{ countFor('upcoming') }}</span></button>
+        <button class="proto-tab" [class.active]="activeTab==='ongoing'" (click)="switchTab('ongoing')">Ongoing <span class="count">{{ countFor('ongoing') }}</span></button>
+        <button class="proto-tab" [class.active]="activeTab==='completed'" (click)="switchTab('completed')">Completed <span class="count">{{ countFor('completed') }}</span></button>
+        <button class="proto-tab" [class.active]="activeTab==='archived'" (click)="switchTab('archived')">Archived <span class="count">{{ countFor('archived') }}</span></button>
+      </div>
+
+      <div class="lt-loading-row" *ngIf="isLoading"><span class="lt-spinner"></span> Loading...</div>
+
+      <div class="lt-table-wrap" *ngIf="!isLoading">
+        <table class="lt-table">
+          <thead>
+            <tr>
+              <th>Title</th><th>Phases</th><th>Start Date</th><th>End Date</th>
+              <th *ngIf="activeTab === 'all' || activeTab === 'archived'">Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of filtered">
+              <td style="font-weight:500;">{{ p.title }}</td>
+              <td>
+                <span class="proto-phase-pill" *ngIf="phaseLabel(p)">{{ phaseLabel(p) }}</span>
+                <span class="cell-muted" *ngIf="!phaseLabel(p)">—</span>
+              </td>
+              <td class="cell-muted">{{ p.startDate | date:'dd MMM yyyy' }}</td>
+              <td class="cell-muted">{{ p.endDate | date:'dd MMM yyyy' }}</td>
+              <td *ngIf="activeTab === 'all' || activeTab === 'archived'">
+                <span class="lt-badge" [ngClass]="getStatusBadge(p.status)">{{ p.status }}</span>
+              </td>
+              <td>
+                <div class="proto-actions">
+                  <button class="proto-btn-view" (click)="openView(p)">View</button>
+                  <button class="proto-btn-edit" (click)="openEdit(p)" *ngIf="canEdit">Edit</button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filtered.length === 0">
+              <td [attr.colspan]="activeTab === 'all' || activeTab === 'archived' ? 6 : 5" class="cell-empty">
+                No {{ activeTab === 'all' ? '' : activeTab }} protocols found.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div class="proto-overlay" *ngIf="showView" (click)="closeView()">
+  <div class="proto-modal" (click)="$event.stopPropagation()">
+    <div class="proto-modal-head">
+      <div class="proto-modal-head-text">
+        <div class="proto-modal-title">{{ selectedProtocol?.title }}</div>
+        <div class="proto-modal-sub">Protocol details</div>
+      </div>
+      <button class="proto-modal-x" (click)="closeView()">&#x2715;</button>
+    </div>
+    <div class="proto-modal-body" *ngIf="selectedProtocol">
+      <div class="proto-detail-grid">
+        <div class="proto-detail-cell">
+          <span class="proto-detail-lbl">Status</span>
+          <span class="lt-badge" [ngClass]="getStatusBadge(selectedProtocol.status)">{{ selectedProtocol.status }}</span>
+        </div>
+        <div class="proto-detail-cell">
+          <span class="proto-detail-lbl">Total phases</span>
+          <span class="proto-detail-val">{{ selectedPhases.length || '—' }}</span>
+        </div>
+        <div class="proto-detail-cell">
+          <span class="proto-detail-lbl">Start date</span>
+          <span class="proto-detail-val">{{ selectedProtocol.startDate | date:'dd MMM yyyy' }}</span>
+        </div>
+        <div class="proto-detail-cell">
+          <span class="proto-detail-lbl">End date</span>
+          <span class="proto-detail-val">{{ selectedProtocol.endDate | date:'dd MMM yyyy' }}</span>
+        </div>
+      </div>
+      <div *ngIf="selectedPhases.length > 0">
+        <div class="proto-phases-title">Phase breakdown</div>
+        <div class="proto-phase-row" *ngFor="let ph of selectedPhases">
+          <span class="proto-phase-num">Phase {{ ph.phaseNumber }}</span>
+          <span class="proto-phase-dates">{{ ph.startDate | date:'dd MMM yyyy' }} — {{ ph.endDate | date:'dd MMM yyyy' }}</span>
+          <span class="lt-badge" [ngClass]="getStatusBadge(phaseStatusFor(ph.startDate, ph.endDate))">{{ phaseStatusFor(ph.startDate, ph.endDate) }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="proto-modal-foot">
+      <div class="proto-foot-right">
+        <button class="proto-btn-cancel" (click)="closeView()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="proto-overlay" *ngIf="showEdit" (click)="closeEdit()">
+  <div class="proto-modal proto-modal-lg" (click)="$event.stopPropagation()">
+    <div class="proto-modal-head">
+      <div class="proto-modal-head-text">
+        <div class="proto-modal-title">Edit Protocol</div>
+        <div class="proto-modal-sub">{{ selectedProtocol?.title }}</div>
+      </div>
+      <button class="proto-modal-x" (click)="closeEdit()">&#x2715;</button>
+    </div>
+    <div class="proto-modal-body">
+      <div class="lt-alert lt-alert-error" *ngIf="errorMsg">{{ errorMsg }}</div>
+      <div class="lt-form-group">
+        <label class="lt-form-label">Title</label>
+        <input class="lt-form-control" [(ngModel)]="editForm.title" placeholder="Protocol title" />
+      </div>
+      <div class="lt-form-row">
+        <div class="lt-form-group">
+          <label class="lt-form-label">Start Date</label>
+          <input class="lt-form-control" type="date" [(ngModel)]="editForm.startDate" (change)="onEditProtoDatesChange()" />
+        </div>
+        <div class="lt-form-group">
+          <label class="lt-form-label">End Date</label>
+          <input class="lt-form-control" type="date" [(ngModel)]="editForm.endDate" [min]="editForm.startDate" (change)="onEditProtoDatesChange()" />
+        </div>
+      </div>
+      <ng-container *ngIf="editDatesReady">
+        <div class="proto-section-div">Phase Configuration</div>
+        <div class="lt-form-group" style="max-width:200px;">
+          <label class="lt-form-label">Number of phases</label>
+          <input class="lt-form-control" type="number" min="1" [(ngModel)]="editPhaseCount" placeholder="Enter any number" (input)="onEditPhaseCountInput()" />
+          <span class="proto-hint" *ngIf="!editPhaseCountError">Type a number — phases appear below</span>
+          <span class="proto-err" *ngIf="editPhaseCountError">{{ editPhaseCountError }}</span>
+        </div>
+        <div *ngIf="editPhases.length > 0">
+          <div class="proto-phase-card" *ngFor="let phase of editPhases; let i = index">
+            <div class="proto-phase-card-head">
+              <span class="proto-phase-card-title">Phase {{ phase.phaseNumber }}</span>
+              <span class="lt-badge lt-badge-blue">Phase {{ phase.phaseNumber }} of {{ editPhases.length }}</span>
+            </div>
+            <div class="lt-form-row">
+              <div class="lt-form-group">
+                <label class="lt-form-label">Start date</label>
+                <input class="lt-form-control" [class.proto-locked]="i === 0" type="date"
+                  [(ngModel)]="phase.startDate" [min]="editPhaseStartMin(i)" [max]="editForm.endDate"
+                  [readonly]="i === 0" (change)="onEditPhaseStartChange(i)" />
+                <span class="proto-hint" *ngIf="i === 0">🔒 Locked to protocol start</span>
+              </div>
+              <div class="lt-form-group">
+                <label class="lt-form-label">End date</label>
+                <input class="lt-form-control" [class.proto-locked]="i === editPhases.length - 1" type="date"
+                  [(ngModel)]="phase.endDate" [min]="editPhaseEndMin(i)" [max]="editForm.endDate"
+                  [readonly]="i === editPhases.length - 1" (change)="onEditPhaseEndChange(i)" />
+                <span class="proto-hint" *ngIf="i === editPhases.length - 1">🔒 Locked to protocol end</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+    <div class="proto-modal-foot" *ngIf="selectedProtocol">
+      <div class="proto-foot-split">
+        <div class="proto-foot-danger">
+          <button class="proto-btn-archive" *ngIf="canArchive(selectedProtocol)" (click)="archive(selectedProtocol)">Archive</button>
+          <button class="proto-btn-delete" *ngIf="canDelete(selectedProtocol)" (click)="delete(selectedProtocol)">Delete</button>
+          <span class="proto-tooltip-wrap" *ngIf="!canDelete(selectedProtocol)">
+            <button class="proto-btn-del-dis" disabled>Delete</button>
+            <span class="proto-tooltip">Cannot delete an {{ selectedProtocol.status | lowercase }} protocol</span>
+          </span>
+        </div>
+        <div class="proto-foot-main">
+          <button class="proto-btn-cancel" (click)="closeEdit()">Cancel</button>
+          <button class="proto-btn-save" (click)="saveEdit()" [disabled]="editPhases.length === 0">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE MODAL -->
+<div class="proto-overlay" *ngIf="showCreate" (click)="showCreate=false; resetForm()">
+  <div class="proto-modal proto-modal-lg" (click)="$event.stopPropagation()">
+    <div class="proto-modal-head">
+      <div class="proto-modal-head-text">
+        <div class="proto-modal-title">New Protocol</div>
+        <div class="proto-modal-sub">Fill in details and define phases below.</div>
+      </div>
+      <button class="proto-modal-x" (click)="showCreate=false; resetForm()">&#x2715;</button>
+    </div>
+    <div class="proto-modal-body">
+      <div class="lt-alert lt-alert-error" *ngIf="errorMsg">{{ errorMsg }}</div>
+      <div class="lt-form-group">
+        <label class="lt-form-label">Title</label>
+        <input class="lt-form-control" [(ngModel)]="form.title" placeholder="Protocol title" />
+      </div>
+      <div class="lt-form-row">
+        <div class="lt-form-group">
+          <label class="lt-form-label">Start Date</label>
+          <input class="lt-form-control" type="date" [(ngModel)]="form.startDate" [min]="today" (change)="onProtoDatesChange()" />
+        </div>
+        <div class="lt-form-group">
+          <label class="lt-form-label">End Date</label>
+          <input class="lt-form-control" type="date" [(ngModel)]="form.endDate" [min]="form.startDate" (change)="onProtoDatesChange()" />
+        </div>
+      </div>
+      <ng-container *ngIf="datesReady">
+        <div class="proto-section-div">Phase Configuration</div>
+        <div class="lt-form-group" style="max-width:200px;">
+          <label class="lt-form-label">Number of phases</label>
+          <input class="lt-form-control" type="number" min="1" [(ngModel)]="phaseCount" placeholder="Enter any number" (input)="onPhaseCountInput()" />
+          <span class="proto-hint" *ngIf="!phaseCountError">Type a number — phases appear below</span>
+          <span class="proto-err" *ngIf="phaseCountError">{{ phaseCountError }}</span>
+        </div>
+        <div *ngIf="phases.length > 0">
+          <div class="proto-phase-card" *ngFor="let phase of phases; let i = index">
+            <div class="proto-phase-card-head">
+              <span class="proto-phase-card-title">Phase {{ phase.phaseNumber }}</span>
+              <span class="lt-badge lt-badge-blue">Phase {{ phase.phaseNumber }} of {{ phases.length }}</span>
+            </div>
+            <div class="lt-form-row">
+              <div class="lt-form-group">
+                <label class="lt-form-label">Start date</label>
+                <input class="lt-form-control" [class.proto-locked]="i === 0" type="date"
+                  [(ngModel)]="phase.startDate" [min]="phaseStartMin(i)" [max]="form.endDate"
+                  [readonly]="i === 0" (change)="onPhaseStartChange(i)" />
+                <span class="proto-hint" *ngIf="i === 0">🔒 Locked to protocol start</span>
+              </div>
+              <div class="lt-form-group">
+                <label class="lt-form-label">End date</label>
+                <input class="lt-form-control" [class.proto-locked]="i === phases.length - 1" type="date"
+                  [(ngModel)]="phase.endDate" [min]="phaseEndMin(i)" [max]="form.endDate"
+                  [readonly]="i === phases.length - 1" (change)="onPhaseEndChange(i)" />
+                <span class="proto-hint" *ngIf="i === phases.length - 1">🔒 Locked to protocol end</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+    <div class="proto-modal-foot">
+      <div class="proto-foot-right">
+        <button class="proto-btn-cancel" (click)="showCreate=false; resetForm()">Cancel</button>
+        <button class="proto-btn-save" (click)="create()" [disabled]="phases.length === 0">Create Protocol</button>
+      </div>
+    </div>
+  </div>
+</div>

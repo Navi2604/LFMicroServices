@@ -1,0 +1,121 @@
+<!-- visits.component.html -->
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <a routerLink="/dashboard">LifeTrack</a>
+        <span class="sep">/</span>
+        <span class="current">Visits</span>
+      </div>
+      <div class="lt-topbar-right">
+        <button class="lt-btn lt-btn-primary" (click)="showCreate=true" *ngIf="canEdit">
+          + Schedule Visit
+        </button>
+      </div>
+    </div>
+
+    <div class="lt-content">
+      <div class="lt-page-header">
+        <div class="lt-page-title">Visits</div>
+        <div class="lt-page-subtitle">{{ filtered.length }} visits on record</div>
+      </div>
+
+      <div class="lt-alert lt-alert-success" *ngIf="successMsg">{{ successMsg }}</div>
+      <div class="lt-alert lt-alert-error"   *ngIf="errorMsg">{{ errorMsg }}</div>
+
+      <div class="lt-loading-row" *ngIf="isLoading">
+        <span class="lt-spinner"></span> Loading...
+      </div>
+
+      <div class="lt-table-wrap" *ngIf="!isLoading">
+        <table class="lt-table">
+          <thead>
+            <tr>
+              <th>Visit ID</th>
+              <th>Patient ID</th>
+              <th>Protocol ID</th>
+              <th>Visit Date</th>
+              <th>Status</th>
+              <th>Notes</th>
+              <th *ngIf="canEdit">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let v of filtered">
+              <td class="cell-id">VIS-{{ v.visitID }}</td>
+              <td class="cell-id">PT-{{ v.patientID }}</td>
+              <td class="cell-id">PROT-{{ v.protocolID }}</td>
+              <td class="cell-muted">{{ v.visitDate | date:'dd MMM yyyy' }}</td>
+              <td>
+                <span class="lt-badge" [ngClass]="getStatusBadge(v.status)">{{ v.status }}</span>
+              </td>
+              <td class="cell-muted"
+                  style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                {{ v.notes || '—' }}
+              </td>
+              <td *ngIf="canEdit">
+                <button class="lt-btn lt-btn-danger lt-btn-sm"
+                        (click)="delete(v.visitID)">Delete</button>
+              </td>
+            </tr>
+            <tr *ngIf="filtered.length === 0">
+              <td [attr.colspan]="canEdit ? 7 : 6" class="cell-empty">No visits found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Modal -->
+<div class="lt-modal-overlay" *ngIf="showCreate">
+  <div class="lt-modal">
+    <div class="lt-modal-title">Schedule Visit</div>
+    <div class="lt-modal-subtitle">Assign a visit for a patient under a protocol.</div>
+
+    <div class="lt-form-row">
+      <div class="lt-form-group">
+        <label class="lt-form-label">Patient</label>
+        <select class="lt-form-control" [(ngModel)]="form.patientID">
+          <option value="0">Select patient</option>
+          <option *ngFor="let p of patients" [value]="p.patientID">{{ p.name }}</option>
+        </select>
+      </div>
+      <div class="lt-form-group">
+        <label class="lt-form-label">Protocol</label>
+        <select class="lt-form-control" [(ngModel)]="form.protocolID">
+          <option value="0">Select protocol</option>
+          <option *ngFor="let p of protocols" [value]="p.protocolID">{{ p.title }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="lt-form-row">
+      <div class="lt-form-group">
+        <label class="lt-form-label">Visit Date</label>
+        <input class="lt-form-control" type="date" [(ngModel)]="form.visitDate" />
+      </div>
+      <div class="lt-form-group">
+        <label class="lt-form-label">Status</label>
+        <select class="lt-form-control" [(ngModel)]="form.status">
+          <option>Scheduled</option>
+          <option>Completed</option>
+          <option>Missed</option>
+          <option>Cancelled</option>
+        </select>
+      </div>
+    </div>
+    <div class="lt-form-group">
+      <label class="lt-form-label">Notes</label>
+      <input class="lt-form-control" [(ngModel)]="form.notes"
+             placeholder="Optional notes" />
+    </div>
+
+    <div class="lt-modal-footer">
+      <button class="lt-btn lt-btn-ghost" (click)="showCreate=false">Cancel</button>
+      <button class="lt-btn lt-btn-primary" (click)="create()">Schedule Visit</button>
+    </div>
+  </div>
+</div>

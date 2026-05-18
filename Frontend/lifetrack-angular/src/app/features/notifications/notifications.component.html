@@ -1,0 +1,100 @@
+<!-- notifications.component.html -->
+<style>
+.lt-filter-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.lt-filter-tab{padding:6px 16px;border-radius:20px;border:1.5px solid #dde1f0;background:#fff;color:#555;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;}
+.lt-filter-tab:hover{border-color:#1a3a8f;color:#1a3a8f;}
+.lt-filter-tab.active{background:#1a3a8f;color:#fff;border-color:#1a3a8f;}
+.tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.25);margin-left:5px;}
+.lt-filter-tab:not(.active) .tab-count{background:#f0f2f8;color:#1a3a8f;}
+.lt-notif-list{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;}
+.lt-notif-item{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid #f0f2f8;cursor:pointer;transition:background 0.1s;}
+.lt-notif-item:last-child{border-bottom:none;}
+.lt-notif-item:hover{background:#f7f8fc;}
+.lt-notif-item.unread{background:#f0f4ff;}
+.lt-notif-item.unread:hover{background:#e8eeff;}
+.lt-notif-dot{width:9px;height:9px;border-radius:50%;background:#1a3a8f;margin-top:5px;flex-shrink:0;}
+.lt-notif-dot.read{background:#dde1f0;}
+.lt-notif-msg{font-size:13px;color:#1a1a2e;font-weight:500;line-height:1.4;}
+.lt-notif-item.unread .lt-notif-msg{font-weight:600;}
+.lt-notif-time{font-size:11px;color:#aaa;}
+.lt-notif-empty{padding:48px;text-align:center;color:#aaa;font-size:13px;}
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <a routerLink="/dashboard">LifeTrack</a>
+        <span class="sep">/</span>
+        <span class="current">Notifications</span>
+      </div>
+      <div class="lt-topbar-right">
+        <button class="lt-btn lt-btn-ghost lt-btn-sm"
+          (click)="markAllRead()" *ngIf="unreadCount > 0">
+          Mark all read
+        </button>
+      </div>
+    </div>
+
+    <div class="lt-content">
+      <div class="lt-page-header">
+        <div class="lt-page-title">Notifications</div>
+        <div class="lt-page-subtitle">
+          {{ unreadCount }} unread &middot; {{ notifications.length }} total
+        </div>
+      </div>
+
+      <!-- ── Category filter tabs ────────────────────────────── -->
+      <div class="lt-filter-tabs">
+        <button class="lt-filter-tab" [class.active]="activeTab === 'All'"
+          (click)="setTab('All')">
+          All <span class="tab-count">{{ notifications.length }}</span>
+        </button>
+        <button class="lt-filter-tab" [class.active]="activeTab === 'Enrollment'"
+          (click)="setTab('Enrollment')">Enrollment</button>
+        <button class="lt-filter-tab" [class.active]="activeTab === 'Visit'"
+          (click)="setTab('Visit')">Visit</button>
+        <button class="lt-filter-tab" [class.active]="activeTab === 'Protocol'"
+          (click)="setTab('Protocol')">Protocol</button>
+        <button class="lt-filter-tab" [class.active]="activeTab === 'Alert'"
+          (click)="setTab('Alert')">Alert</button>
+      </div>
+
+      <div class="lt-loading-row" *ngIf="isLoading">
+        <span class="lt-spinner"></span> Loading...
+      </div>
+
+      <!-- ── Notification list ───────────────────────────────── -->
+      <div class="lt-notif-list" *ngIf="!isLoading">
+        <div class="lt-notif-item" [class.unread]="n.status === 'Unread'"
+          *ngFor="let n of filtered" (click)="markRead(n)">
+
+          <div class="lt-notif-dot" [class.read]="n.status !== 'Unread'"></div>
+
+          <div style="flex:1;">
+            <div class="lt-notif-msg">{{ n.message }}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:5px;">
+              <span class="lt-notif-time">
+                {{ n.createdDate | date:'dd MMM yyyy, HH:mm' }}
+              </span>
+              <span class="lt-badge" [ngClass]="getCategoryBadge(n.category)">
+                {{ n.category }}
+              </span>
+              <span style="font-size:11px;color:#aaa;" *ngIf="n.status === 'Unread'">
+                · Click to mark read
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="lt-notif-empty" *ngIf="filtered.length === 0">
+          No notifications.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

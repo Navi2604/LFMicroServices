@@ -1,0 +1,231 @@
+<!-- users.component.html -->
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <a routerLink="/dashboard">LifeTrack</a>
+        <span class="sep">/</span>
+        <span class="current">Manage Users</span>
+      </div>
+      <div class="lt-topbar-right">
+        <button class="lt-btn lt-btn-primary" (click)="openCreate()">
+          + Add User
+        </button>
+      </div>
+    </div>
+
+    <div class="lt-content">
+
+      <div class="lt-page-header">
+        <div class="lt-page-title">Manage Users</div>
+      </div>
+
+      <div class="lt-alert lt-alert-success" *ngIf="successMsg">{{ successMsg }}</div>
+      <div class="lt-alert lt-alert-error"   *ngIf="errorMsg">{{ errorMsg }}</div>
+
+      <!-- Role filter tabs -->
+      <div class="lt-filter-tabs">
+        <button class="lt-filter-tab" [class.active]="activeTab === 'All'"
+                (click)="setTab('All')">
+          <span class="tab-count">{{ users.length }}</span> All Staff
+        </button>
+        <button class="lt-filter-tab" [class.active]="activeTab === 'Admin'"
+                (click)="setTab('Admin')">
+          <span class="tab-count">{{ countByRole('Admin') }}</span> Admin
+        </button>
+        <button class="lt-filter-tab" [class.active]="activeTab === 'ClinicalTrialManager'"
+                (click)="setTab('ClinicalTrialManager')">
+          <span class="tab-count">{{ countByRole('ClinicalTrialManager') }}</span> Clinical Trial Manager
+        </button>
+        <button class="lt-filter-tab" [class.active]="activeTab === 'Investigator'"
+                (click)="setTab('Investigator')">
+          <span class="tab-count">{{ countByRole('Investigator') }}</span> Investigator
+        </button>
+        <button class="lt-filter-tab" [class.active]="activeTab === 'RegulatoryOfficer'"
+                (click)="setTab('RegulatoryOfficer')">
+          <span class="tab-count">{{ countByRole('RegulatoryOfficer') }}</span> Regulatory Officer
+        </button>
+        <button class="lt-filter-tab" [class.active]="activeTab === 'DataManager'"
+                (click)="setTab('DataManager')">
+          <span class="tab-count">{{ countByRole('DataManager') }}</span> Data Manager
+        </button>
+      </div>
+
+      <!-- Search -->
+      <div class="lt-search-row">
+        <div class="lt-search-wrap">
+          <span class="search-ic">🔍</span>
+          <input class="lt-search-input"
+                 placeholder="Search by name or email..."
+                 [(ngModel)]="searchTerm"
+                 (input)="applyFilters()" />
+        </div>
+        <button class="lt-btn lt-btn-secondary" (click)="applyFilters()">Search</button>
+      </div>
+
+      <!-- Count -->
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+        Showing <strong>{{ filtered.length }}</strong> user{{ filtered.length !== 1 ? 's' : '' }}
+      </div>
+
+      <div class="lt-loading-row" *ngIf="isLoading">
+        <span class="lt-spinner"></span> Loading users...
+      </div>
+
+      <div class="lt-table-wrap" *ngIf="!isLoading">
+        <table class="lt-table">
+          <thead>
+            <tr>
+              <th style="width:44px;">#</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of filtered; let i = index">
+              <td class="cell-muted" style="font-size:12px;">{{ i + 1 }}</td>
+
+              <td style="font-weight:500;">
+                {{ u.name }}
+                <!-- Super Admin crown -->
+                <span *ngIf="u.userID === 20004"
+                      title="Super Admin"
+                      style="margin-left:4px; font-size:13px;">👑</span>
+                <!-- You indicator -->
+                <span *ngIf="u.userID === currentUserId"
+                      style="margin-left:4px; font-size:11px;
+                             color:var(--text-muted); font-style:italic;">(you)</span>
+              </td>
+
+              <td class="cell-muted">{{ u.email }}</td>
+              <td class="cell-muted">{{ u.phone || '—' }}</td>
+
+              <td>
+                <span class="lt-badge" [ngClass]="getRoleBadge(u.roleName)">
+                  {{ u.roleName }}
+                </span>
+              </td>
+
+              <!-- Status — clickable toggle button -->
+              <td>
+                <button
+                  class="lt-status-toggle"
+                  [class.active]="u.isActive"
+                  [class.inactive]="!u.isActive"
+                  [disabled]="!canToggle(u)"
+                  (click)="toggleUser(u)"
+                  [title]="canToggle(u) ? (u.isActive ? 'Click to deactivate' : 'Click to activate') : 'Cannot change status'">
+                  <span class="status-dot"></span>
+                  {{ u.isActive ? 'Active' : 'Inactive' }}
+                  <span class="status-hint" *ngIf="canToggle(u)">
+                    {{ u.isActive ? '→ Deactivate' : '→ Activate' }}
+                  </span>
+                </button>
+              </td>
+
+              <!-- Actions -->
+              <td>
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <!-- Edit always visible -->
+                  <button class="lt-btn lt-btn-secondary lt-btn-sm"
+                          (click)="openEdit(u)">
+                    Edit
+                  </button>
+
+                  <!-- Delete — only when inactive AND permission allows -->
+                  <button class="lt-btn lt-btn-danger lt-btn-sm"
+                          *ngIf="canDelete(u)"
+                          (click)="deleteUser(u)">
+                    Delete
+                  </button>
+
+                  <!-- Greyed hint when active -->
+                  <span *ngIf="u.isActive && canToggle(u)"
+                        style="font-size:11px; color:var(--text-muted); white-space:nowrap;">
+                    Deactivate first
+                  </span>
+                </div>
+              </td>
+
+            </tr>
+            <tr *ngIf="filtered.length === 0">
+              <td colspan="7" class="cell-empty">No users found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Modal -->
+<div class="lt-modal-overlay" *ngIf="showModal">
+  <div class="lt-modal">
+    <div class="lt-modal-title">{{ editMode ? 'Edit User' : 'Add Staff User' }}</div>
+    <div class="lt-modal-subtitle">
+      {{ editMode ? 'Update user details below.' : 'Create a new staff account.' }}
+    </div>
+
+    <div class="lt-alert lt-alert-error" *ngIf="modalError">{{ modalError }}</div>
+
+    <div class="lt-form-row">
+      <div class="lt-form-group">
+        <label class="lt-form-label">Full Name</label>
+        <input class="lt-form-control"
+               [(ngModel)]="form.name"
+               placeholder="e.g. Dr. Meera Iyer"
+               autocomplete="off" />
+      </div>
+      <div class="lt-form-group">
+        <label class="lt-form-label">Phone</label>
+        <input class="lt-form-control"
+               [(ngModel)]="form.phone"
+               placeholder="10-digit number"
+               autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="lt-form-group">
+      <label class="lt-form-label">Email</label>
+      <input class="lt-form-control"
+             type="email"
+             [(ngModel)]="form.email"
+             placeholder="user@lifetrack.io"
+             autocomplete="off" />
+    </div>
+
+    <div class="lt-form-group">
+      <label class="lt-form-label">Role</label>
+      <select class="lt-form-control" [(ngModel)]="form.roleID">
+        <option value="0">Select a role</option>
+        <option *ngFor="let r of roles" [value]="r.roleID">{{ r.roleName }}</option>
+      </select>
+    </div>
+
+    <div class="lt-form-group" *ngIf="!editMode">
+      <label class="lt-form-label">Password</label>
+      <input class="lt-form-control"
+             type="password"
+             [(ngModel)]="form.password"
+             placeholder="Min 8 characters"
+             autocomplete="new-password" />
+    </div>
+
+    <div class="lt-modal-footer">
+      <button class="lt-btn lt-btn-ghost" (click)="closeModal()">Cancel</button>
+      <button class="lt-btn lt-btn-primary" (click)="saveUser()" [disabled]="isSaving">
+        <span class="lt-spinner" style="width:13px;height:13px;border-width:2px;"
+              *ngIf="isSaving"></span>
+        {{ editMode ? 'Update User' : 'Create User' }}
+      </button>
+    </div>
+  </div>
+</div>

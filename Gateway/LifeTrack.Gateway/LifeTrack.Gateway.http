@@ -1,0 +1,6 @@
+@LifeTrack.Gateway_HostAddress = http://localhost:5064
+
+GET {{LifeTrack.Gateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

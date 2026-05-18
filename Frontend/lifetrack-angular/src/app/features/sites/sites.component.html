@@ -1,0 +1,90 @@
+<!-- sites.component.html -->
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <a routerLink="/dashboard">LifeTrack</a>
+        <span class="sep">/</span>
+        <span class="current">Sites</span>
+      </div>
+      <div class="lt-topbar-right">
+        <button class="lt-btn lt-btn-primary" (click)="showCreate=true" *ngIf="canEdit">
+          + New Site
+        </button>
+      </div>
+    </div>
+
+    <div class="lt-content">
+      <div class="lt-page-header">
+        <div class="lt-page-title">Sites</div>
+        <div class="lt-page-subtitle">{{ filtered.length }} sites registered</div>
+      </div>
+
+      <div class="lt-alert lt-alert-success" *ngIf="successMsg">{{ successMsg }}</div>
+      <div class="lt-alert lt-alert-error"   *ngIf="errorMsg">{{ errorMsg }}</div>
+
+      <div class="lt-loading-row" *ngIf="isLoading">
+        <span class="lt-spinner"></span> Loading...
+      </div>
+
+      <div class="lt-table-wrap" *ngIf="!isLoading">
+        <table class="lt-table">
+          <thead>
+            <tr>
+              <th>Site ID</th>
+              <th>Name</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th *ngIf="canEdit">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of filtered">
+              <td class="cell-id">SITE-{{ s.siteID }}</td>
+              <td style="font-weight:500;">{{ s.name }}</td>
+              <td class="cell-muted">📍 {{ s.location }}</td>
+              <td>
+                <span class="lt-badge" [ngClass]="getStatusBadge(s.status)">{{ s.status }}</span>
+              </td>
+              <td *ngIf="canEdit">
+                <button class="lt-btn lt-btn-danger lt-btn-sm"
+                        (click)="delete(s.siteID)">Delete</button>
+              </td>
+            </tr>
+            <tr *ngIf="filtered.length === 0">
+              <td [attr.colspan]="canEdit ? 5 : 4" class="cell-empty">No sites found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Modal -->
+<div class="lt-modal-overlay" *ngIf="showCreate">
+  <div class="lt-modal">
+    <div class="lt-modal-title">New Site</div>
+    <div class="lt-modal-subtitle">Register a new trial site.</div>
+
+    <div class="lt-form-row">
+      <div class="lt-form-group">
+        <label class="lt-form-label">Site Name</label>
+        <input class="lt-form-control" [(ngModel)]="form.name"
+               placeholder="e.g. KMCH Coimbatore" />
+      </div>
+      <div class="lt-form-group">
+        <label class="lt-form-label">Location</label>
+        <input class="lt-form-control" [(ngModel)]="form.location"
+               placeholder="City, State" />
+      </div>
+    </div>
+
+    <div class="lt-modal-footer">
+      <button class="lt-btn lt-btn-ghost" (click)="showCreate=false">Cancel</button>
+      <button class="lt-btn lt-btn-primary" (click)="create()">Create Site</button>
+    </div>
+  </div>
+</div>

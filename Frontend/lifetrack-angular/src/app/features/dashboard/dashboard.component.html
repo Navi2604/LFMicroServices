@@ -1,0 +1,166 @@
+<!-- ============================================================
+     dashboard.component.html
+     Role-aware dashboard — Admin / CTM / Investigator /
+     DataManager / RegulatoryOfficer / Patient
+     ============================================================ -->
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+
+    <!-- Topbar -->
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <span class="current">LifeTrack</span>
+        <span class="sep">/</span>
+        <span class="current">Dashboard</span>
+      </div>
+      <div class="lt-topbar-right">
+        <button class="lt-notif-btn" routerLink="/notifications">
+          🔔
+          <span class="dot" *ngIf="unreadCount > 0"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="lt-content">
+
+      <!-- Page header -->
+      <div class="lt-page-header">
+        <div class="lt-page-title">Dashboard</div>
+        <div class="lt-page-subtitle">Welcome back, <strong>{{ userName }}</strong></div>
+      </div>
+
+      <!-- ── KPI CARDS ── -->
+      <div class="lt-kpi-grid">
+
+        <!-- Admin only: Total Staff -->
+        <div class="lt-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager'])">
+          <div class="lt-kpi-icon blue">👥</div>
+          <div>
+            <div class="lt-kpi-label">Total Staff</div>
+            <div class="lt-kpi-value">{{ totalUsers }}</div>
+          </div>
+        </div>
+
+        <!-- All staff: Patients -->
+        <div class="lt-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer'])">
+          <div class="lt-kpi-icon green">🧬</div>
+          <div>
+            <div class="lt-kpi-label">Total Patients</div>
+            <div class="lt-kpi-value">{{ totalPatients }}</div>
+          </div>
+        </div>
+
+        <!-- Protocols -->
+        <div class="lt-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer'])">
+          <div class="lt-kpi-icon amber">📋</div>
+          <div>
+            <div class="lt-kpi-label">Active Protocols</div>
+            <div class="lt-kpi-value">{{ activeProtocols }}</div>
+          </div>
+        </div>
+
+        <!-- Sites -->
+        <div class="lt-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator'])">
+          <div class="lt-kpi-icon purple">📍</div>
+          <div>
+            <div class="lt-kpi-label">Total Sites</div>
+            <div class="lt-kpi-value">{{ totalSites }}</div>
+          </div>
+        </div>
+
+        <!-- Patient view: My visits -->
+        <div class="lt-kpi" *ngIf="hasRole(['Patient'])">
+          <div class="lt-kpi-icon blue">📅</div>
+          <div>
+            <div class="lt-kpi-label">Upcoming Visits</div>
+            <div class="lt-kpi-value">{{ upcomingVisits }}</div>
+          </div>
+        </div>
+
+        <div class="lt-kpi" *ngIf="hasRole(['Patient'])">
+          <div class="lt-kpi-icon green">✅</div>
+          <div>
+            <div class="lt-kpi-label">Completed Visits</div>
+            <div class="lt-kpi-value">{{ completedVisits }}</div>
+          </div>
+        </div>
+
+      </div>
+      <!-- end KPI grid -->
+
+      <!-- ── TWO COLUMN CARDS (staff roles) ── -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;"
+           *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer'])">
+
+        <!-- Protocols card -->
+        <div class="lt-card">
+          <div class="lt-card-header">
+            <div class="lt-card-title">Protocols</div>
+            <a class="lt-card-link" routerLink="/protocols">View all →</a>
+          </div>
+          <div style="padding: 6px 0;">
+            <div class="lt-list-row" *ngFor="let p of recentProtocols">
+              <div>
+                <div class="lt-list-row-name">{{ p.title }}</div>
+                <div class="lt-list-row-sub">
+                  <span>{{ p.phase }}</span>
+                  <span class="dot-sep">·</span>
+                  <span>{{ p.startDate | date:'dd MMM yyyy' }} — {{ p.endDate | date:'dd MMM yyyy' }}</span>
+                </div>
+              </div>
+              <span class="lt-badge" [ngClass]="getProtocolBadge(p.status)">{{ p.status }}</span>
+            </div>
+            <div class="lt-list-row" *ngIf="recentProtocols.length === 0">
+              <span style="color:var(--text-muted); font-size:13px;">No protocols found.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sites card -->
+        <div class="lt-card" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator'])">
+          <div class="lt-card-header">
+            <div class="lt-card-title">Sites</div>
+            <a class="lt-card-link" routerLink="/sites">View all →</a>
+          </div>
+          <div style="padding: 6px 0;">
+            <div class="lt-list-row" *ngFor="let s of recentSites">
+              <div>
+                <div class="lt-list-row-name">{{ s.name }}</div>
+                <div class="lt-list-row-sub">
+                  <span>📍</span><span>{{ s.location }}</span>
+                </div>
+              </div>
+              <span class="lt-badge" [ngClass]="getSiteBadge(s.status)">{{ s.status }}</span>
+            </div>
+            <div class="lt-list-row" *ngIf="recentSites.length === 0">
+              <span style="color:var(--text-muted); font-size:13px;">No sites found.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- end two-col -->
+
+      <!-- ── Patient Dashboard ── -->
+      <div *ngIf="hasRole(['Patient'])">
+        <div class="lt-card">
+          <div class="lt-card-header">
+            <div class="lt-card-title">My Upcoming Visits</div>
+          </div>
+          <div class="lt-card-body">
+            <p style="color:var(--text-secondary); font-size:13px;">
+              Your next scheduled visits will appear here. Contact your investigator if you have questions.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- end lt-content -->
+
+  </div>
+</div>

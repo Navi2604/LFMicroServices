@@ -1,0 +1,106 @@
+<!-- ============================================================
+     lt-sidebar.component.html
+     Shared sidebar — import this component in every page
+     ============================================================ -->
+
+<aside class="lt-sidebar">
+
+  <!-- Logo -->
+  <div class="lt-sidebar-logo">
+    <div class="logo-name">Life<span>Track</span></div>
+    <div class="logo-tag">Clinical Trials Platform</div>
+  </div>
+
+  <!-- User info -->
+  <div class="lt-sidebar-user">
+    <div class="lt-avatar">{{ initials }}</div>
+    <div>
+      <div class="lt-sidebar-user-name">{{ userName }}</div>
+      <div class="lt-sidebar-user-role">{{ userRole }}</div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="lt-nav">
+
+    <!-- CORE -->
+    <div class="lt-nav-section">Core</div>
+    <a class="lt-nav-link" routerLink="/dashboard" routerLinkActive="active">
+      <span class="nav-ic">⊞</span> Dashboard
+    </a>
+
+    <!-- Admin only: Manage Users -->
+    <ng-container *ngIf="hasRole(['Admin'])">
+      <a class="lt-nav-link" routerLink="/users" routerLinkActive="active">
+        <span class="nav-ic">👤</span> Manage Users
+      </a>
+    </ng-container>
+
+    <!-- TRIAL OPS -->
+    <div class="lt-nav-section">Trial Ops</div>
+
+    <!-- Protocols — all staff except Patient -->
+    <ng-container *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','RegulatoryOfficer','DataManager'])">
+      <a class="lt-nav-link" routerLink="/protocols" routerLinkActive="active">
+        <span class="nav-ic">📋</span> Protocols
+      </a>
+    </ng-container>
+
+    <!-- Sites — Admin, CTM, Investigator -->
+    <ng-container *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator'])">
+      <a class="lt-nav-link" routerLink="/sites" routerLinkActive="active">
+        <span class="nav-ic">📍</span> Sites
+      </a>
+    </ng-container>
+
+    <!-- Visits — CTM and Investigator only (NOT Admin) -->
+    <ng-container *ngIf="hasRole(['ClinicalTrialManager','Investigator'])">
+      <a class="lt-nav-link" routerLink="/visits" routerLinkActive="active">
+        <span class="nav-ic">📅</span> Visits
+      </a>
+    </ng-container>
+
+    <!-- Patients — CTM, Investigator, DataManager, RegulatoryOfficer (NOT Admin) -->
+    <ng-container *ngIf="hasRole(['ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer'])">
+      <a class="lt-nav-link" routerLink="/patients" routerLinkActive="active">
+        <span class="nav-ic">🧬</span> Patients
+      </a>
+    </ng-container>
+
+    <!-- Patient role: My Visits + My Protocol -->
+    <ng-container *ngIf="hasRole(['Patient'])">
+      <a class="lt-nav-link" routerLink="/my-visits" routerLinkActive="active">
+        <span class="nav-ic">📅</span> My Visits
+      </a>
+      <a class="lt-nav-link" routerLink="/my-protocol" routerLinkActive="active">
+        <span class="nav-ic">📋</span> My Protocol
+      </a>
+    </ng-container>
+
+    <!-- COMPLIANCE -->
+    <div class="lt-nav-section">Compliance</div>
+
+    <!-- Audit Log — Admin only -->
+    <ng-container *ngIf="hasRole(['Admin'])">
+      <a class="lt-nav-link" routerLink="/audit" routerLinkActive="active">
+        <span class="nav-ic">📊</span> Audit Log
+      </a>
+    </ng-container>
+
+    <!-- SYSTEM -->
+    <div class="lt-nav-section">System</div>
+    <a class="lt-nav-link" routerLink="/notifications" routerLinkActive="active">
+      <span class="nav-ic">🔔</span> Notifications
+      <span class="nav-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+    </a>
+
+  </nav>
+
+  <!-- Sign out -->
+  <div class="lt-sidebar-footer">
+    <button class="lt-signout-btn" (click)="logout()">
+      <span>↩</span> Sign Out
+    </button>
+  </div>
+
+</aside>
