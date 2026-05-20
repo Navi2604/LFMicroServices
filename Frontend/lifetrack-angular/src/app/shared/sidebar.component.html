@@ -25,8 +25,15 @@
 
     <!-- CORE -->
     <div class="lt-nav-section">Core</div>
-    <a class="lt-nav-link" routerLink="/dashboard" routerLinkActive="active">
+    <!-- Admin/Staff dashboard -->
+    <a class="lt-nav-link" routerLink="/dashboard" routerLinkActive="active"
+      *ngIf="!hasRole(['Patient'])">
       <span class="nav-ic">⊞</span> Dashboard
+    </a>
+    <!-- Patient dashboard -->
+    <a class="lt-nav-link" routerLink="/my-dashboard" routerLinkActive="active"
+      *ngIf="hasRole(['Patient'])">
+      <span class="nav-ic">⊞</span> My Dashboard
     </a>
 
     <!-- Admin only: Manage Users -->

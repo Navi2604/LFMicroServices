@@ -1,33 +1,56 @@
 <!-- sites.component.html -->
+<style>
+.st-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.st-tab{padding:5px 14px;border-radius:20px;border:1.5px solid #e5e7eb;background:#fff;font-size:12px;font-weight:500;color:#555;cursor:pointer;transition:all 0.12s;}
+.st-tab:hover{border-color:#1a3a8f;color:#1a3a8f;}
+.st-tab.active{background:#1a3a8f;color:#fff;border-color:#1a3a8f;}
+.st-tab .sc{font-size:11px;font-weight:600;margin-left:4px;opacity:0.8;}
+/* View modal */
+.sv-tabs{display:flex;border-bottom:1.5px solid #e5e7eb;padding:0 24px;}
+.sv-tab{padding:10px 16px;font-size:13px;font-weight:500;color:#888;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;}
+.sv-tab.active{color:#1a3a8f;border-bottom:2px solid #1a3a8f;}
+.sv-tab-count{background:#f0f2f8;color:#1a3a8f;font-size:11px;font-weight:600;padding:1px 7px;border-radius:20px;margin-left:5px;}
+.sv-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.sv-info-cell{background:#f7f8fc;border-radius:8px;padding:11px 14px;}
+.sv-info-lbl{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px;}
+.sv-info-val{font-size:13px;font-weight:500;color:#1a1a2e;}
+.sv-proto-card{border:0.5px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin-bottom:8px;}
+.sv-proto-card.active{border-left:3px solid #22c55e;border-radius:0 10px 10px 0;}
+.sv-proto-card.upcoming{border-left:3px solid #f59e0b;border-radius:0 10px 10px 0;}
+.sv-empty{padding:28px;text-align:center;color:#aaa;font-size:13px;background:#f9fafb;border-radius:10px;}
+</style>
+
 <div class="lt-page">
   <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
-
   <div class="lt-main">
     <div class="lt-topbar">
       <div class="lt-breadcrumb">
-        <a routerLink="/dashboard">LifeTrack</a>
-        <span class="sep">/</span>
-        <span class="current">Sites</span>
+        <a routerLink="/dashboard">LifeTrack</a><span class="sep">/</span><span class="current">Sites</span>
       </div>
       <div class="lt-topbar-right">
-        <button class="lt-btn lt-btn-primary" (click)="showCreate=true" *ngIf="canEdit">
-          + New Site
-        </button>
+        <button class="lt-btn lt-btn-primary" (click)="openCreate()" *ngIf="canEdit">+ New Site</button>
       </div>
     </div>
 
     <div class="lt-content">
       <div class="lt-page-header">
         <div class="lt-page-title">Sites</div>
-        <div class="lt-page-subtitle">{{ filtered.length }} sites registered</div>
+        <div class="lt-page-subtitle">{{ sites.length }} site{{ sites.length !== 1 ? 's' : '' }} registered</div>
       </div>
 
       <div class="lt-alert lt-alert-success" *ngIf="successMsg">{{ successMsg }}</div>
       <div class="lt-alert lt-alert-error"   *ngIf="errorMsg">{{ errorMsg }}</div>
 
-      <div class="lt-loading-row" *ngIf="isLoading">
-        <span class="lt-spinner"></span> Loading...
+      <!-- Status filter tabs -->
+      <div class="st-tabs">
+        <button class="st-tab" *ngFor="let tab of statusTabs"
+          [class.active]="activeTab === tab"
+          (click)="setTab(tab)">
+          {{ tab }} <span class="sc">{{ countFor(tab) }}</span>
+        </button>
       </div>
+
+      <div class="lt-loading-row" *ngIf="isLoading"><span class="lt-spinner"></span> Loading...</div>
 
       <div class="lt-table-wrap" *ngIf="!isLoading">
         <table class="lt-table">
@@ -37,7 +60,7 @@
               <th>Name</th>
               <th>Location</th>
               <th>Status</th>
-              <th *ngIf="canEdit">Actions</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -45,16 +68,16 @@
               <td class="cell-id">SITE-{{ s.siteID }}</td>
               <td style="font-weight:500;">{{ s.name }}</td>
               <td class="cell-muted">📍 {{ s.location }}</td>
+              <td><span [ngClass]="getStatusBadge(s.status)">{{ s.status }}</span></td>
               <td>
-                <span class="lt-badge" [ngClass]="getStatusBadge(s.status)">{{ s.status }}</span>
-              </td>
-              <td *ngIf="canEdit">
-                <button class="lt-btn lt-btn-danger lt-btn-sm"
-                        (click)="delete(s.siteID)">Delete</button>
+                <div style="display:flex;gap:6px;">
+                  <button class="lt-btn lt-btn-secondary lt-btn-sm" (click)="openView(s)">View</button>
+                  <button class="lt-btn lt-btn-secondary lt-btn-sm" (click)="openEdit(s)" *ngIf="canEdit">Edit</button>
+                </div>
               </td>
             </tr>
             <tr *ngIf="filtered.length === 0">
-              <td [attr.colspan]="canEdit ? 5 : 4" class="cell-empty">No sites found.</td>
+              <td colspan="5" class="cell-empty">No sites found.</td>
             </tr>
           </tbody>
         </table>
@@ -63,28 +86,154 @@
   </div>
 </div>
 
-<!-- Create Modal -->
-<div class="lt-modal-overlay" *ngIf="showCreate">
-  <div class="lt-modal">
-    <div class="lt-modal-title">New Site</div>
-    <div class="lt-modal-subtitle">Register a new trial site.</div>
+<!-- VIEW MODAL -->
+<div class="lt-modal-overlay" *ngIf="showView" (click)="closeView()">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;"
+       (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:16px;font-weight:600;color:#1a1a2e;">{{ viewSite?.name }}</div>
+        <div style="font-size:12px;color:#aaa;margin-top:2px;">📍 {{ viewSite?.location }} &nbsp;·&nbsp; SITE-{{ viewSite?.siteID }}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span [ngClass]="getStatusBadge(viewSite?.status || '')">{{ viewSite?.status }}</span>
+        <button style="background:transparent;border:none;font-size:18px;color:#aaa;cursor:pointer;padding:4px 8px;" (click)="closeView()">✕</button>
+      </div>
+    </div>
+    <!-- Tabs -->
+    <div class="sv-tabs">
+      <button class="sv-tab" [class.active]="viewTab==='overview'" (click)="viewTab='overview'">Overview</button>
+      <button class="sv-tab" [class.active]="viewTab==='protocols'" (click)="viewTab='protocols'">
+        Protocols <span class="sv-tab-count">{{ viewProtocols.length }}</span>
+      </button>
+      <button class="sv-tab" [class.active]="viewTab==='patients'" (click)="viewTab='patients'">
+        Patients <span class="sv-tab-count">{{ viewPatientCount }}</span>
+      </button>
+    </div>
+    <!-- Body -->
+    <div style="padding:20px 24px;">
+      <div *ngIf="viewLoading" class="sv-empty">Loading site details...</div>
 
+      <!-- Overview tab -->
+      <div *ngIf="!viewLoading && viewTab==='overview'">
+        <div class="sv-info-grid">
+          <div class="sv-info-cell">
+            <div class="sv-info-lbl">Site name</div>
+            <div class="sv-info-val">{{ viewSite?.name }}</div>
+          </div>
+          <div class="sv-info-cell">
+            <div class="sv-info-lbl">Location</div>
+            <div class="sv-info-val">{{ viewSite?.location }}</div>
+          </div>
+          <div class="sv-info-cell">
+            <div class="sv-info-lbl">Status</div>
+            <div class="sv-info-val">{{ viewSite?.status }}</div>
+          </div>
+          <div class="sv-info-cell">
+            <div class="sv-info-lbl">Active protocols</div>
+            <div class="sv-info-val">{{ viewProtocols.length }}</div>
+          </div>
+          <div class="sv-info-cell">
+            <div class="sv-info-lbl">Total patients</div>
+            <div class="sv-info-val">{{ viewPatientCount }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Protocols tab -->
+      <div *ngIf="!viewLoading && viewTab==='protocols'">
+        <div *ngFor="let sp of viewProtocols" class="sv-proto-card"
+          [class.active]="sp.status === 'Active' || sp.status === 'Ongoing'"
+          [class.upcoming]="sp.status === 'Upcoming'">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:500;color:#1a1a2e;">{{ sp.protocolTitle }}</div>
+            <span [ngClass]="getStatusBadge(sp.status)">{{ sp.status }}</span>
+          </div>
+          <div style="font-size:12px;color:#888;display:flex;gap:16px;flex-wrap:wrap;">
+            <span>Investigator: {{ sp.investigatorName || '—' }}</span>
+          </div>
+        </div>
+        <div class="sv-empty" *ngIf="viewProtocols.length === 0">No protocols assigned to this site.</div>
+      </div>
+
+      <!-- Patients tab -->
+      <div *ngIf="!viewLoading && viewTab==='patients'">
+        <div style="text-align:center;padding:32px;">
+          <div style="font-size:36px;margin-bottom:12px;">🧬</div>
+          <div style="font-size:22px;font-weight:700;color:#1a1a2e;">{{ viewPatientCount }}</div>
+          <div style="font-size:13px;color:#888;margin-top:4px;">
+            patient{{ viewPatientCount !== 1 ? 's' : '' }} enrolled across {{ viewProtocols.length }} protocol{{ viewProtocols.length !== 1 ? 's' : '' }} at this site
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;">
+      <button class="lt-btn lt-btn-ghost" (click)="closeView()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE MODAL -->
+<div class="lt-modal-overlay" *ngIf="showCreate" (click)="showCreate=false">
+  <div class="lt-modal" (click)="$event.stopPropagation()">
+    <div class="lt-modal-title">New Site</div>
+    <div class="lt-modal-subtitle">Register a new trial site. Investigator is assigned via protocols.</div>
+    <div class="lt-alert lt-alert-error" *ngIf="createError">{{ createError }}</div>
     <div class="lt-form-row">
       <div class="lt-form-group">
-        <label class="lt-form-label">Site Name</label>
-        <input class="lt-form-control" [(ngModel)]="form.name"
-               placeholder="e.g. KMCH Coimbatore" />
+        <label class="lt-form-label">Site name</label>
+        <input class="lt-form-control" [(ngModel)]="createForm.name" placeholder="e.g. Apollo Hospital" />
       </div>
       <div class="lt-form-group">
         <label class="lt-form-label">Location</label>
-        <input class="lt-form-control" [(ngModel)]="form.location"
-               placeholder="City, State" />
+        <input class="lt-form-control" [(ngModel)]="createForm.location" placeholder="City, State" />
       </div>
     </div>
-
+    <div class="lt-form-group">
+      <label class="lt-form-label">Status</label>
+      <select class="lt-form-control" [(ngModel)]="createForm.status">
+        <option>Active</option>
+        <option>Inactive</option>
+      </select>
+    </div>
     <div class="lt-modal-footer">
       <button class="lt-btn lt-btn-ghost" (click)="showCreate=false">Cancel</button>
       <button class="lt-btn lt-btn-primary" (click)="create()">Create Site</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="lt-modal-overlay" *ngIf="showEdit" (click)="showEdit=false">
+  <div class="lt-modal" (click)="$event.stopPropagation()">
+    <div class="lt-modal-title">Edit Site</div>
+    <div class="lt-modal-subtitle">Update site details below.</div>
+    <div class="lt-alert lt-alert-error" *ngIf="editError">{{ editError }}</div>
+    <div class="lt-form-row">
+      <div class="lt-form-group">
+        <label class="lt-form-label">Site name</label>
+        <input class="lt-form-control" [(ngModel)]="editForm.name" />
+      </div>
+      <div class="lt-form-group">
+        <label class="lt-form-label">Location</label>
+        <input class="lt-form-control" [(ngModel)]="editForm.location" />
+      </div>
+    </div>
+    <div class="lt-form-group">
+      <label class="lt-form-label">Status</label>
+      <select class="lt-form-control" [(ngModel)]="editForm.status">
+        <option>Active</option>
+        <option>Inactive</option>
+      </select>
+    </div>
+    <div class="lt-modal-footer" style="justify-content:space-between;">
+      <!-- Delete on left — Admin only -->
+      <button class="lt-btn lt-btn-danger" *ngIf="canEdit" (click)="deleteSite()">Delete site</button>
+      <div style="display:flex;gap:8px;">
+        <button class="lt-btn lt-btn-ghost" (click)="showEdit=false">Cancel</button>
+        <button class="lt-btn lt-btn-primary" (click)="saveEdit()">Save changes</button>
+      </div>
     </div>
   </div>
 </div>

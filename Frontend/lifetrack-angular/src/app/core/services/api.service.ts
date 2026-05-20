@@ -62,13 +62,16 @@ export interface SiteDto {
   status:         string;
 }
 
-export interface VisitDto {
-  visitID:    number;
-  patientID:  number;
-  protocolID: number;
-  visitDate:  string;
-  status:     string;
-  notes:      string;
+export interface SiteProtocolDto {
+  siteProtocolID:   number;
+  siteID:           number;
+  siteName:         string;
+  protocolID:       number;
+  protocolTitle:    string;
+  investigatorID:   number;
+  investigatorName: string;
+  initiationDate:   string;
+  status:           string;
 }
 
 export interface NotificationDto {
@@ -78,6 +81,15 @@ export interface NotificationDto {
   category:       string;
   status:         string;
   createdDate:    string;
+}
+
+export interface VisitDto {
+  visitID:    number;
+  patientID:  number;
+  protocolID: number;
+  visitDate:  string;
+  status:     string;
+  notes:      string;
 }
 
 const BASE = 'http://localhost:5000';
@@ -91,6 +103,12 @@ export class AuthApiService {
     Observable<ApiResponse<LoginResponse>> {
     return this.http.post<ApiResponse<LoginResponse>>(
       `${this.url}/login`, { email, password });
+  }
+
+  loginPatient(email: string, password: string):
+    Observable<ApiResponse<LoginResponse>> {
+    return this.http.post<ApiResponse<LoginResponse>>(
+      `${this.url}/login-patient`, { email, password });
   }
 
   register(data: any): Observable<ApiResponse<UserDto>> {
@@ -192,9 +210,8 @@ export class ProtocolApiService {
       `${this.url}/${id}`);
   }
 
-  archive(id: number, data: any): Observable<ApiResponse<ProtocolDto>> {
-    return this.http.put<ApiResponse<ProtocolDto>>(
-      `${this.url}/${id}`, { ...data, status: 'Archived' });
+  archive(id: number): Observable<ApiResponse<boolean>> {
+    return this.http.patch<ApiResponse<boolean>>(`${this.url}/${id}/archive`, {});
   }
 }
 
@@ -208,13 +225,15 @@ export class SiteApiService {
   }
 
   create(data: any): Observable<ApiResponse<SiteDto>> {
-    return this.http.post<ApiResponse<SiteDto>>(
-      this.url, data);
+    return this.http.post<ApiResponse<SiteDto>>(this.url, data);
+  }
+
+  update(id: number, data: any): Observable<ApiResponse<SiteDto>> {
+    return this.http.put<ApiResponse<SiteDto>>(`${this.url}/${id}`, data);
   }
 
   delete(id: number): Observable<ApiResponse<boolean>> {
-    return this.http.delete<ApiResponse<boolean>>(
-      `${this.url}/${id}`);
+    return this.http.delete<ApiResponse<boolean>>(`${this.url}/${id}`);
   }
 }
 
@@ -223,13 +242,17 @@ export class VisitApiService {
   private url = `${BASE}/api/visits`;
   constructor(private http: HttpClient) {}
 
-  getAll(): Observable<ApiResponse<VisitDto[]>> {
-    return this.http.get<ApiResponse<VisitDto[]>>(this.url);
+  getAll(params?: any): Observable<ApiResponse<VisitDto[]>> {
+    return this.http.get<ApiResponse<VisitDto[]>>(this.url, { params });
   }
 
   create(data: any): Observable<ApiResponse<VisitDto>> {
     return this.http.post<ApiResponse<VisitDto>>(
       this.url, data);
+  }
+
+  update(id: number, data: any): Observable<ApiResponse<VisitDto>> {
+    return this.http.put<ApiResponse<VisitDto>>(`${this.url}/${id}`, data);
   }
 
   delete(id: number): Observable<ApiResponse<boolean>> {
@@ -250,20 +273,60 @@ export class AuditApiService {
 }
 
 @Injectable({ providedIn: 'root' })
+export class EnrollmentApiService {
+  private url = `${BASE}/api/enrollments`;
+  constructor(private http: HttpClient) {}
+
+  getAll(params?: any): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(this.url, { params });
+  }
+
+  create(data: any): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(this.url, data);
+  }
+
+  updateStatus(id: number, data: any): Observable<ApiResponse<any>> {
+    return this.http.patch<ApiResponse<any>>(`${this.url}/${id}/status`, data);
+  }
+
+  respond(id: number, accept: boolean): Observable<ApiResponse<boolean>> {
+    return this.http.patch<ApiResponse<boolean>>(`${this.url}/${id}/respond`, { accept });
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class SiteProtocolApiService {
+  private url = `${BASE}/api/site-protocols`;
+  constructor(private http: HttpClient) {}
+
+  getAll(params?: any): Observable<ApiResponse<SiteProtocolDto[]>> {
+    return this.http.get<ApiResponse<SiteProtocolDto[]>>(this.url, { params });
+  }
+
+  getById(id: number): Observable<ApiResponse<SiteProtocolDto>> {
+    return this.http.get<ApiResponse<SiteProtocolDto>>(`${this.url}/${id}`);
+  }
+
+  create(data: any): Observable<ApiResponse<SiteProtocolDto>> {
+    return this.http.post<ApiResponse<SiteProtocolDto>>(this.url, data);
+  }
+
+  updateStatus(id: number, status: string): Observable<ApiResponse<boolean>> {
+    return this.http.patch<ApiResponse<boolean>>(`${this.url}/${id}/status`, { status });
+  }
+
+  delete(id: number): Observable<ApiResponse<boolean>> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.url}/${id}`);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
 export class NotificationApiService {
   private url = `${BASE}/api/notifications`;
   constructor(private http: HttpClient) {}
 
   getAll(params?: any): Observable<ApiResponse<NotificationDto[]>> {
     return this.http.get<ApiResponse<NotificationDto[]>>(this.url, { params });
-  }
-
-  getById(id: number): Observable<ApiResponse<NotificationDto>> {
-    return this.http.get<ApiResponse<NotificationDto>>(`${this.url}/${id}`);
-  }
-
-  create(data: any): Observable<ApiResponse<NotificationDto>> {
-    return this.http.post<ApiResponse<NotificationDto>>(this.url, data);
   }
 
   markAsRead(id: number): Observable<ApiResponse<boolean>> {

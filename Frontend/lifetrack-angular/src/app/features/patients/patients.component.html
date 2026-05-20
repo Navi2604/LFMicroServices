@@ -1,42 +1,99 @@
 <!-- patients.component.html -->
+<style>
+.pt-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #dde1f0;}
+.pt-tab{padding:10px 22px;font-size:14px;font-weight:500;border:none;background:transparent;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.15s;}
+.pt-tab:hover{color:#1a3a8f;} .pt-tab.active{color:#1a3a8f;border-bottom:3px solid #1a3a8f;}
+.pt-tab .tab-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:20px;font-size:11px;font-weight:600;background:#f0f2f8;color:#1a3a8f;margin-left:6px;}
+.st-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.st-tab{padding:5px 14px;border-radius:20px;border:1.5px solid #e5e7eb;background:#fff;font-size:12px;font-weight:500;color:#555;cursor:pointer;transition:all 0.12s;}
+.st-tab:hover{border-color:#1a3a8f;color:#1a3a8f;}
+.st-tab.active{background:#1a3a8f;color:#fff;border-color:#1a3a8f;}
+.st-tab .sc{font-size:11px;font-weight:600;margin-left:4px;opacity:0.8;}
+/* View modal */
+.pv-tabs{display:flex;border-bottom:1.5px solid #e5e7eb;padding:0 24px;}
+.pv-tab{padding:10px 16px;font-size:13px;font-weight:500;color:#888;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;}
+.pv-tab.active{color:#1a3a8f;border-bottom:2px solid #1a3a8f;}
+.pv-tab-count{background:#f0f2f8;color:#1a3a8f;font-size:11px;font-weight:600;padding:1px 7px;border-radius:20px;margin-left:5px;}
+.pv-enroll-card{border:0.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:8px;}
+.pv-enroll-card.active-card{border-left:3px solid #22c55e;border-radius:0 10px 10px 0;}
+.pv-enroll-card.completed-card{border-left:3px solid #3b82f6;border-radius:0 10px 10px 0;}
+.pv-enroll-card.withdrawn-card{border-left:3px solid #ef4444;border-radius:0 10px 10px 0;}
+.pv-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.pv-info-cell{background:#f7f8fc;border-radius:8px;padding:11px 14px;}
+.pv-info-lbl{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px;}
+.pv-info-val{font-size:13px;font-weight:500;color:#1a1a2e;}
+.pv-section-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;}
+.pv-avatar{width:48px;height:48px;border-radius:50%;background:#e8f0fe;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#1a56db;flex-shrink:0;}
+.pv-empty{padding:28px;text-align:center;color:#aaa;font-size:13px;}
+</style>
+
 <div class="lt-page">
   <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
-
   <div class="lt-main">
     <div class="lt-topbar">
       <div class="lt-breadcrumb">
-        <a routerLink="/dashboard">LifeTrack</a>
-        <span class="sep">/</span>
-        <span class="current">Patients</span>
+        <a routerLink="/dashboard">LifeTrack</a><span class="sep">/</span><span class="current">Patients</span>
       </div>
       <div class="lt-topbar-right">
         <button class="lt-btn lt-btn-primary" (click)="showEnroll=true"
-                *ngIf="canEnroll">+ Enroll Patient</button>
+          *ngIf="canEnroll && !isInvestigator">+ Enroll Patient</button>
       </div>
     </div>
 
     <div class="lt-content">
       <div class="lt-page-header">
         <div class="lt-page-title">Patients</div>
-        <div class="lt-page-subtitle">{{ patients.length }} total records</div>
+        <div class="lt-page-subtitle">{{ filtered.length }} records shown</div>
       </div>
 
       <div class="lt-alert lt-alert-success" *ngIf="successMsg">{{ successMsg }}</div>
-      <div class="lt-alert lt-alert-error"   *ngIf="errorMsg">{{ errorMsg }}</div>
+      <div class="lt-alert lt-alert-error" *ngIf="errorMsg && !showEnroll">{{ errorMsg }}</div>
+
+      <!-- Main tabs: All / My Patients -->
+      <div class="pt-tabs">
+        <button class="pt-tab" [class.active]="activeTab==='all'" (click)="switchTab('all')">
+          All Patients <span class="tab-count">{{ allPatients.length }}</span>
+        </button>
+        <button class="pt-tab" [class.active]="activeTab==='mine'"
+          (click)="switchTab('mine')" *ngIf="isInvestigator">
+          My Patients <span class="tab-count">{{ myPatients.length }}</span>
+        </button>
+      </div>
+
+      <!-- Status filter tabs -->
+      <div class="st-tabs">
+        <button class="st-tab" [class.active]="statusTab==='All'" (click)="setStatusTab('All')">
+          All <span class="sc">{{ countByStatus('All') }}</span>
+        </button>
+        <button class="st-tab" [class.active]="statusTab==='Active'" (click)="setStatusTab('Active')">
+          Active <span class="sc">{{ countByStatus('Active') }}</span>
+        </button>
+        <button class="st-tab" [class.active]="statusTab==='Completed'" (click)="setStatusTab('Completed')"
+          *ngIf="activeTab==='mine'">
+          Completed <span class="sc">{{ countByStatus('Completed') }}</span>
+        </button>
+        <button class="st-tab" [class.active]="statusTab==='Withdrawn'" (click)="setStatusTab('Withdrawn')"
+          *ngIf="activeTab==='mine'">
+          Withdrawn <span class="sc">{{ countByStatus('Withdrawn') }}</span>
+        </button>
+        <button class="st-tab" [class.active]="statusTab===''" (click)="setStatusTab('')"
+          *ngIf="activeTab==='all'">
+          Not Enrolled <span class="sc">{{ countByStatus('') }}</span>
+        </button>
+      </div>
 
       <!-- Search -->
       <div class="lt-search-row">
         <div class="lt-search-wrap">
           <span class="search-ic">🔍</span>
-          <input class="lt-search-input" placeholder="Search patients..."
-                 [(ngModel)]="searchTerm" (input)="applyFilter()" />
+          <input class="lt-search-input" placeholder="Search by name, email or protocol..."
+            [(ngModel)]="searchTerm" (input)="applyAllFilters()" />
         </div>
       </div>
 
-      <div class="lt-loading-row" *ngIf="isLoading">
-        <span class="lt-spinner"></span> Loading...
-      </div>
+      <div class="lt-loading-row" *ngIf="isLoading"><span class="lt-spinner"></span> Loading...</div>
 
+      <!-- Table — no DOB or Contact columns -->
       <div class="lt-table-wrap" *ngIf="!isLoading">
         <table class="lt-table">
           <thead>
@@ -44,42 +101,45 @@
               <th>Patient ID</th>
               <th>Name</th>
               <th>Email</th>
-              <th>Date of Birth</th>
-              <th>Contact</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
+              <th *ngIf="statusTab!==''">Current Protocol</th>
+              <th *ngIf="statusTab==='All'">Status</th>
+              <th style="text-align:left;">Actions</th>
           </thead>
           <tbody>
             <tr *ngFor="let p of filtered">
               <td class="cell-id">PT-{{ p.patientID }}</td>
               <td style="font-weight:500;">{{ p.name }}</td>
               <td class="cell-muted">{{ p.email }}</td>
-              <td class="cell-muted">{{ p.dob | date:'dd MMM yyyy' }}</td>
-              <td class="cell-muted">{{ p.contactInfo }}</td>
-              <td>
-                <span class="lt-badge" [ngClass]="getStatusBadge(p.enrollmentStatus)">
-                  {{ p.enrollmentStatus }}
-                </span>
+              <td class="cell-muted" style="font-size:12px;" *ngIf="statusTab!==''">
+                <span *ngIf="getPatientProtocol(p)" style="line-height:1.5;">{{ getPatientProtocol(p) }}</span>
+                <span *ngIf="!getPatientProtocol(p)" style="color:#ccc;">—</span>
               </td>
+              <td *ngIf="statusTab==='All'">
+                <span class="lt-badge" [ngClass]="getStatusBadge(getPatientStatus(p))"
+                  *ngIf="getPatientStatus(p)">{{ getPatientStatus(p) }}</span>
+                <span style="color:#aaa;font-size:12px;" *ngIf="!getPatientStatus(p)">Not enrolled</span>
+              </td>
+
               <td>
-                <div style="display:flex; gap:6px; align-items:center;">
-                  <select class="lt-form-control" style="padding:4px 8px; font-size:12px; width:auto;"
-                          *ngIf="canEnroll"
-                          (change)="updateStatus(p.patientID, $any($event.target).value)">
-                    <option value="">Change status</option>
-                    <option value="Active">Active</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Withdrawn">Withdrawn</option>
-                    <option value="Screening">Screening</option>
-                  </select>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <button class="lt-btn lt-btn-secondary lt-btn-sm" (click)="openView(p)">View</button>
+                  <!-- Enroll — for unenrolled or withdrawn patients in All tab -->
+                  <button class="lt-btn lt-btn-primary lt-btn-sm"
+                    *ngIf="canEnroll && activeTab==='all' && canEnrollPatient(p)"
+                    (click)="openEnrollToProtocol(p)"
+                    style="background:#1a3a8f;color:#fff;border:none;">+ Enroll</button>
+                  <!-- Edit status — only for active/screening patients, not withdrawn/completed -->
+                  <button class="lt-btn lt-btn-secondary lt-btn-sm"
+                    *ngIf="canEnroll && isEnrolled(p) && getPatientStatus(p)==='Active' && (activeTab==='mine' || !isInvestigator)"
+                    (click)="openEditStatus(p)">Edit</button>
+                  <!-- Delete — Admin only -->
                   <button class="lt-btn lt-btn-danger lt-btn-sm"
-                          (click)="delete(p.patientID)">Delete</button>
+                    *ngIf="canDelete" (click)="delete(p.patientID)">Delete</button>
                 </div>
               </td>
             </tr>
             <tr *ngIf="filtered.length === 0">
-              <td colspan="7" class="cell-empty">No patients found.</td>
+              <td [attr.colspan]="statusTab==='' ? 4 : statusTab==='All' ? 6 : 5" class="cell-empty">No patients found.</td>
             </tr>
           </tbody>
         </table>
@@ -88,12 +148,160 @@
   </div>
 </div>
 
-<!-- Enroll Modal -->
-<div class="lt-modal-overlay" *ngIf="showEnroll">
-  <div class="lt-modal">
+<!-- VIEW MODAL -->
+<div class="lt-modal-overlay" *ngIf="showView" (click)="closeView()">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto;"
+       (click)="$event.stopPropagation()">
+    <!-- Header — no status badge -->
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="pv-avatar">{{ getInitials(selectedPatient?.name || '') }}</div>
+        <div>
+          <div style="font-size:16px;font-weight:600;color:#1a1a2e;">{{ selectedPatient?.name }}</div>
+          <div style="font-size:12px;color:#aaa;margin-top:2px;">
+            PT-{{ selectedPatient?.patientID }} &nbsp;·&nbsp; DOB: {{ selectedPatient?.dob | date:'dd MMM yyyy' }}
+          </div>
+        </div>
+      </div>
+      <button style="background:transparent;border:none;font-size:18px;color:#aaa;cursor:pointer;padding:4px 8px;"
+        (click)="closeView()">✕</button>
+    </div>
+    <!-- Tabs -->
+    <div class="pv-tabs">
+      <button class="pv-tab" [class.active]="viewTab==='overview'" (click)="viewTab='overview'">Overview</button>
+      <button class="pv-tab" [class.active]="viewTab==='enrollments'" (click)="viewTab='enrollments'">
+        Enrollments <span class="pv-tab-count">{{ patientEnrollments.length }}</span>
+      </button>
+      <button class="pv-tab" [class.active]="viewTab==='visits'" (click)="viewTab='visits'">
+        Visits <span class="pv-tab-count">{{ patientVisits.length }}</span>
+      </button>
+    </div>
+    <!-- Body -->
+    <div style="padding:20px 24px;">
+      <div *ngIf="viewLoading" class="pv-empty">Loading patient details...</div>
+      <!-- Overview -->
+      <div *ngIf="!viewLoading && viewTab==='overview'">
+        <div class="pv-info-grid">
+          <div class="pv-info-cell"><div class="pv-info-lbl">Email</div><div class="pv-info-val">{{ selectedPatient?.email || '—' }}</div></div>
+          <div class="pv-info-cell"><div class="pv-info-lbl">Contact</div><div class="pv-info-val">{{ selectedPatient?.contactInfo || '—' }}</div></div>
+          <div class="pv-info-cell"><div class="pv-info-lbl">Date of birth</div><div class="pv-info-val">{{ selectedPatient?.dob | date:'dd MMM yyyy' }}</div></div>
+          <div class="pv-info-cell"><div class="pv-info-lbl">Total enrollments</div><div class="pv-info-val">{{ patientEnrollments.length }} protocol(s)</div></div>
+        </div>
+        <div class="pv-section-title">Protocol history</div>
+        <div *ngFor="let e of patientEnrollments" class="pv-enroll-card"
+          [class.active-card]="e.status==='Active'" [class.completed-card]="e.status==='Completed'" [class.withdrawn-card]="e.status==='Withdrawn'">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div style="font-size:13px;font-weight:500;color:#1a1a2e;">{{ e.protocolTitle || 'Protocol #' + e.siteProtocolID }}</div>
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;"
+              [style.background]="getEnrollmentStatusColor(e.status)" [style.color]="getEnrollmentStatusText(e.status)">{{ e.status }}</span>
+          </div>
+          <div style="font-size:12px;color:#888;display:flex;gap:16px;flex-wrap:wrap;">
+            <span *ngIf="e.siteName">Site: {{ e.siteName }}</span>
+            <span>Enrolled: {{ e.enrollmentDate | date:'dd MMM yyyy' }}</span>
+            <span *ngIf="e.withdrawalReason">Reason: {{ e.withdrawalReason }}</span>
+          </div>
+        </div>
+        <div class="pv-empty" *ngIf="patientEnrollments.length === 0">Not enrolled in any protocol yet.</div>
+      </div>
+      <!-- Enrollments -->
+      <div *ngIf="!viewLoading && viewTab==='enrollments'">
+        <div *ngFor="let e of patientEnrollments" class="pv-enroll-card"
+          [class.active-card]="e.status==='Active'" [class.completed-card]="e.status==='Completed'" [class.withdrawn-card]="e.status==='Withdrawn'">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:13px;font-weight:500;color:#1a1a2e;">{{ e.protocolTitle || 'Protocol #' + e.siteProtocolID }}</div>
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;"
+              [style.background]="getEnrollmentStatusColor(e.status)" [style.color]="getEnrollmentStatusText(e.status)">{{ e.status }}</span>
+          </div>
+          <div style="font-size:12px;color:#888;display:flex;gap:16px;flex-wrap:wrap;">
+            <span>ID: {{ e.enrollmentID }}</span>
+            <span>Date: {{ e.enrollmentDate | date:'dd MMM yyyy' }}</span>
+            <span *ngIf="e.consentDate">Consent: {{ e.consentDate | date:'dd MMM yyyy' }}</span>
+          </div>
+        </div>
+        <div class="pv-empty" *ngIf="patientEnrollments.length === 0">No enrollments found.</div>
+      </div>
+      <!-- Visits -->
+      <div *ngIf="!viewLoading && viewTab==='visits'">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="border-bottom:2px solid #e5e7eb;">
+              <th style="text-align:left;padding:8px;color:#888;font-size:11px;text-transform:uppercase;font-weight:600;">Visit ID</th>
+              <th style="text-align:left;padding:8px;color:#888;font-size:11px;text-transform:uppercase;font-weight:600;">Date</th>
+              <th style="text-align:left;padding:8px;color:#888;font-size:11px;text-transform:uppercase;font-weight:600;">Status</th>
+              <th style="text-align:left;padding:8px;color:#888;font-size:11px;text-transform:uppercase;font-weight:600;">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let v of patientVisits" style="border-bottom:1px solid #f5f5f8;">
+              <td style="padding:9px 8px;color:#1a3a8f;font-weight:500;">VIS-{{ v.visitID }}</td>
+              <td style="padding:9px 8px;color:#555;">{{ v.visitDate | date:'dd MMM yyyy' }}</td>
+              <td style="padding:9px 8px;">
+                <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;"
+                  [style.background]="v.status==='Completed'?'#e6f4ea':v.status==='Scheduled'?'#e8f0fe':v.status==='Missed'?'#fce8e6':'#f3f4f6'"
+                  [style.color]="v.status==='Completed'?'#27500a':v.status==='Scheduled'?'#0c447c':v.status==='Missed'?'#7f1d1d':'#374151'">
+                  {{ v.status }}
+                </span>
+              </td>
+              <td style="padding:9px 8px;color:#888;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ v.notes || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pv-empty" *ngIf="patientVisits.length === 0">No visits recorded.</div>
+      </div>
+    </div>
+    <div style="padding:14px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;">
+      <button class="lt-btn lt-btn-ghost" (click)="closeView()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT STATUS MODAL -->
+<div class="lt-modal-overlay" *ngIf="showEditStatus" (click)="showEditStatus=false">
+  <div class="lt-modal" style="max-width:400px;" (click)="$event.stopPropagation()">
+    <div class="lt-modal-title">Edit Enrollment Status</div>
+    <div class="lt-modal-subtitle" *ngIf="editPatient">Patient: <strong>{{ editPatient.name }}</strong></div>
+    <div class="lt-form-group" style="margin-top:16px;">
+      <label class="lt-form-label">Status</label>
+      <select class="lt-form-control" [(ngModel)]="editStatus">
+        <option value="Active">Active</option>
+        <option value="Withdrawn">Withdrawn</option>
+      </select>
+    </div>
+    <div class="lt-modal-footer">
+      <button class="lt-btn lt-btn-ghost" (click)="showEditStatus=false">Cancel</button>
+      <button class="lt-btn lt-btn-primary" (click)="saveEditStatus()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ENROLL TO PROTOCOL MODAL -->
+<div class="lt-modal-overlay" *ngIf="showEnrollToProtocol" (click)="showEnrollToProtocol=false">
+  <div class="lt-modal" (click)="$event.stopPropagation()">
+    <div class="lt-modal-title">Enroll Patient to Protocol</div>
+    <div class="lt-modal-subtitle" *ngIf="enrollTargetPatient">Enrolling: <strong>{{ enrollTargetPatient.name }}</strong></div>
+    <div class="lt-alert lt-alert-error" *ngIf="enrollProtocolError">{{ enrollProtocolError }}</div>
+    <div class="lt-form-group" style="margin-top:16px;">
+      <label class="lt-form-label">Select Site-Protocol</label>
+      <select class="lt-form-control" [(ngModel)]="enrollProtocolForm.siteProtocolID">
+        <option value="0">Select a site-protocol</option>
+        <option *ngFor="let sp of availableSiteProtocols" [value]="sp.siteProtocolID">
+          {{ sp.protocolTitle }} — {{ sp.siteName }}
+        </option>
+      </select>
+    </div>
+    <div class="lt-modal-footer">
+      <button class="lt-btn lt-btn-ghost" (click)="showEnrollToProtocol=false">Cancel</button>
+      <button class="lt-btn lt-btn-primary" (click)="enrollToProtocol()">Enroll Patient</button>
+    </div>
+  </div>
+</div>
+
+<!-- ENROLL NEW PATIENT MODAL -->
+<div class="lt-modal-overlay" *ngIf="showEnroll" (click)="showEnroll=false">
+  <div class="lt-modal" (click)="$event.stopPropagation()">
     <div class="lt-modal-title">Enroll Patient</div>
     <div class="lt-modal-subtitle">Add a new patient to the clinical trial.</div>
-
+    <div class="lt-alert lt-alert-error" *ngIf="errorMsg">{{ errorMsg }}</div>
     <div class="lt-form-row">
       <div class="lt-form-group">
         <label class="lt-form-label">Full Name</label>
@@ -114,7 +322,6 @@
         <input class="lt-form-control" [(ngModel)]="enrollForm.contactInfo" placeholder="Phone or address" />
       </div>
     </div>
-
     <div class="lt-modal-footer">
       <button class="lt-btn lt-btn-ghost" (click)="showEnroll=false">Cancel</button>
       <button class="lt-btn lt-btn-primary" (click)="enroll()">Enroll Patient</button>

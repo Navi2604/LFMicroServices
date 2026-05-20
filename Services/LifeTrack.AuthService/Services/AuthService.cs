@@ -5,7 +5,6 @@
 using LifeTrack.AuthService.DTOs;
 using LifeTrack.AuthService.Repositories.Interfaces;
 using LifeTrack.AuthService.Services.Interfaces;
-using LifeTrack.Shared.Helpers;
 using LifeTrack.Shared.Models;
 using LifeTrack.Shared.Wrappers;
 using Microsoft.Extensions.Configuration;
@@ -20,16 +19,11 @@ namespace LifeTrack.AuthService.Services
     {
         private readonly IAuthRepository _repo;
         private readonly IConfiguration _config;
-        private readonly AuditHttpClient _audit;
 
-        public AuthService(
-            IAuthRepository repo,
-            IConfiguration config,
-            AuditHttpClient audit)
+        public AuthService(IAuthRepository repo, IConfiguration config)
         {
             _repo = repo;
             _config = config;
-            _audit = audit;
         }
 
         public async Task<ApiResponse<LoginResponse>> LoginAsync(LoginRequest req)
@@ -47,10 +41,6 @@ namespace LifeTrack.AuthService.Services
             var roleName = user.Role?.RoleName ?? "Unknown";
             var token = GenerateToken(user.UserID, user.Name, user.Email, roleName);
             var expiry = DateTime.UtcNow.AddHours(8);
-
-            _audit.Log("LOGIN", "User", user.UserID,
-                $"User '{user.Name}' ({user.Email}) logged in as '{roleName}'.",
-                explicitUserId: user.UserID);
 
             return ApiResponse<LoginResponse>.Ok(new LoginResponse
             {
@@ -74,10 +64,6 @@ namespace LifeTrack.AuthService.Services
 
             var token = GenerateToken(patient.PatientID, patient.Name, patient.Email, "Patient");
             var expiry = DateTime.UtcNow.AddHours(8);
-
-            _audit.Log("LOGIN", "Patient", patient.PatientID,
-                $"Patient '{patient.Name}' ({patient.Email}) logged in.",
-                explicitUserId: patient.PatientID);
 
             return ApiResponse<LoginResponse>.Ok(new LoginResponse
             {
@@ -106,11 +92,6 @@ namespace LifeTrack.AuthService.Services
             };
 
             await _repo.CreatePatientAsync(patient);
-
-            _audit.Log("CREATE", "Patient", patient.PatientID,
-                $"Patient '{patient.Name}' ({patient.Email}) self-registered.",
-                explicitUserId: patient.PatientID);
-
             return ApiResponse<bool>.Ok(true, "Registration successful. You can now log in.");
         }
 
@@ -124,6 +105,10 @@ namespace LifeTrack.AuthService.Services
             if (role == null)
                 return ApiResponse<bool>.Fail("Invalid role selected.");
 
+            // Investigators start inactive — activated when assigned to a site-protocol
+            // All other staff start active
+            bool startActive = role.RoleName != "Investigator";
+
             var user = new User
             {
                 Name = req.Name,
@@ -131,15 +116,10 @@ namespace LifeTrack.AuthService.Services
                 Phone = req.Phone,
                 RoleID = req.RoleID,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-                IsActive = true
+                IsActive = startActive
             };
 
             await _repo.CreateUserAsync(user);
-
-            _audit.Log("CREATE", "User", user.UserID,
-                $"Staff user '{user.Name}' ({user.Email}) created with role '{role.RoleName}'.",
-                explicitUserId: user.UserID);
-
             return ApiResponse<bool>.Ok(true, $"Staff user '{req.Name}' created successfully.");
         }
 

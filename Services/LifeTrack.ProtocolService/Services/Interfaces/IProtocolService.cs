@@ -13,6 +13,7 @@ namespace LifeTrack.ProtocolService.Services.Interfaces
         Task<ApiResponse<ProtocolDto>> GetByIdAsync(long id);
         Task<ApiResponse<ProtocolDto>> CreateAsync(CreateProtocolRequest req);
         Task<ApiResponse<bool>> UpdateAsync(long id, UpdateProtocolRequest req);
+        Task<ApiResponse<bool>> ArchiveAsync(long id);
         Task<ApiResponse<bool>> DeleteAsync(long id);
     }
 }

@@ -1,86 +1,57 @@
-// ============================================================
-// VisitService.API / Program.cs
-// ============================================================
-
-using LifeTrack.VisitService.Repositories;
-using LifeTrack.VisitService.Repositories.Interfaces;
-using LifeTrack.VisitService.Services;
-using LifeTrack.VisitService.Services.Interfaces;
+using LifeTrack.Shared;
 using LifeTrack.Shared.Data;
-using LifeTrack.Shared.Extensions;
-using LifeTrack.Shared.Filters;
-using LifeTrack.Shared.Helpers;
-using LifeTrack.Shared.Middleware;
 using Microsoft.EntityFrameworkCore;
+using VisitService.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<LifeTrackDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<GlobalExceptionFilter>();
-    options.Filters.Add<ValidationFilter>();
-})
-.AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.PropertyNamingPolicy =
-        System.Text.Json.JsonNamingPolicy.CamelCase;
-});
-
-builder.Services.AddJwtAuth(builder.Configuration);
-builder.Services.AddAuthorization();
-builder.Services.AddScoped<GlobalExceptionFilter>();
-builder.Services.AddScoped<ValidationFilter>();
-
-builder.Services.AddScoped<IVisitRepository, VisitRepository>();
-builder.Services.AddScoped<IVisitService, VisitService>();
-
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient<AuditHttpClient>();
-
-builder.Services.AddCors(options =>
-    options.AddPolicy("AllowAngular", policy =>
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyHeader()
-              .AllowAnyMethod()));
-
+// Add services to the container
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddSwaggerGen();
+
+// Add DbContext
+builder.Services.AddDbContext<LifeTrackDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ✅ FIXED: Register IVisitService with VisitService implementation
+builder.Services.AddScoped<IVisitService, VisitService.API.Services.VisitService>();
+
+// Add CORS if needed
+builder.Services.AddCors(options =>
 {
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    options.AddPolicy("AllowAll", builder =>
     {
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Enter your JWT token here"
-    });
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id   = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
     });
 });
+
+// Add Authorization
+builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer("Bearer", options =>
+    {
+        options.Authority = builder.Configuration["Auth:Authority"];
+        options.Audience = builder.Configuration["Auth:Audience"];
+        options.RequireHttpsMetadata = false;
+    });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
-app.UseSwagger();
-app.UseSwaggerUI();
-app.UseGlobalExceptionHandler();
-app.UseCors("AllowAngular");
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
 app.Run();

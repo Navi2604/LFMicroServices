@@ -28,6 +28,18 @@ namespace LifeTrack.SiteService.DTOs
         public string Status { get; set; } = "Active";
     }
 
+    public class UpdateSiteRequest
+    {
+        [Required(ErrorMessage = "Site name is required.")]
+        [MaxLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [MaxLength(200)]
+        public string Location { get; set; } = string.Empty;
+
+        public string Status { get; set; } = "Active";
+    }
+
     public class SiteFilterDto
     {
         public string? Name { get; set; }
@@ -48,6 +60,9 @@ namespace LifeTrack.SiteService.DTOs
         public string InvestigatorName { get; set; } = string.Empty;
         public DateTime InitiationDate { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string ProtocolStatus { get; set; } = string.Empty;
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
     }
 
     public class CreateSiteProtocolRequest
@@ -76,6 +91,7 @@ namespace LifeTrack.SiteService.DTOs
     {
         public long? SiteID { get; set; }
         public long? ProtocolID { get; set; }
+        public long? InvestigatorID { get; set; }
         public string? Status { get; set; }
     }
 

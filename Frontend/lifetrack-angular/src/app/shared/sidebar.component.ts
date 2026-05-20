@@ -1,9 +1,7 @@
-// ============================================================
-// sidebar.component.ts  — shared sidebar for all pages
-// ============================================================
-import { Component, OnInit, Input } from '@angular/core';
+// sidebar.component.ts
+import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 
 @Component({
@@ -15,18 +13,21 @@ import { AuthService } from '../core/services/auth.service';
 export class SidebarComponent implements OnInit {
   @Input() unreadCount = 0;
 
-  userName = '';
-  userRole = '';
-  initials = '';
+  userName  = '';
+  userRole  = '';
+  initials  = '';
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private router:      Router
+  ) {}
 
   ngOnInit(): void {
     this.userName = this.authService.getUserName();
     this.userRole = this.authService.getRole();
     this.initials = this.userName
       .split(' ')
-      .map(w => w[0])
+      .map(w => w[0] ?? '')
       .join('')
       .substring(0, 2)
       .toUpperCase();
@@ -37,6 +38,9 @@ export class SidebarComponent implements OnInit {
   }
 
   logout(): void {
-    this.authService.logout();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.clear();
+    this.router.navigate(['/login']);
   }
 }

@@ -72,6 +72,12 @@ namespace LifeTrack.PatientService.DTOs
         public DateTime? ConsentDate { get; set; }
     }
 
+    public class RespondEnrollmentRequest
+    {
+        [Required(ErrorMessage = "Accept is required.")]
+        public bool Accept { get; set; }
+    }
+
     public class UpdateEnrollmentStatusRequest
     {
         [Required(ErrorMessage = "Status is required.")]

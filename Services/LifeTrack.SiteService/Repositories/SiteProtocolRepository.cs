@@ -30,6 +30,9 @@ namespace LifeTrack.SiteService.Repositories
             if (filter.ProtocolID.HasValue)
                 query = query.Where(sp => sp.ProtocolID == filter.ProtocolID.Value);
 
+            if (filter.InvestigatorID.HasValue)
+                query = query.Where(sp => sp.InvestigatorID == filter.InvestigatorID.Value);
+
             if (!string.IsNullOrEmpty(filter.Status))
                 query = query.Where(sp => sp.Status == filter.Status);
 
@@ -44,8 +47,11 @@ namespace LifeTrack.SiteService.Repositories
                     ProtocolTitle = sp.Protocol != null ? sp.Protocol.Title : "",
                     InvestigatorID = sp.InvestigatorID,
                     InvestigatorName = sp.Investigator != null ? sp.Investigator.Name : "",
-                    InitiationDate = sp.InitiationDate,
-                    Status = sp.Status
+                    Status = sp.Status,
+                    ProtocolStatus = sp.Protocol != null ? sp.Protocol.Status : "",
+                    StartDate = sp.Protocol != null ? sp.Protocol.StartDate : (DateTime?)null,
+                    EndDate = sp.Protocol != null ? sp.Protocol.EndDate : (DateTime?)null,
+                    InitiationDate = sp.InitiationDate
                 })
                 .ToListAsync();
         }
@@ -69,13 +75,32 @@ namespace LifeTrack.SiteService.Repositories
                 ProtocolTitle = sp.Protocol?.Title ?? "",
                 InvestigatorID = sp.InvestigatorID,
                 InvestigatorName = sp.Investigator?.Name ?? "",
-                InitiationDate = sp.InitiationDate,
-                Status = sp.Status
+                Status = sp.Status,
+                ProtocolStatus = sp.Protocol?.Status ?? "",
+                StartDate = sp.Protocol?.StartDate,
+                EndDate = sp.Protocol?.EndDate,
+                InitiationDate = sp.InitiationDate
             };
         }
 
         public async Task<SiteProtocolDto> CreateAsync(CreateSiteProtocolRequest req)
         {
+            // Block assignment if site is Inactive
+            var site = await _db.Sites.FindAsync(req.SiteID);
+            if (site == null)
+                throw new InvalidOperationException("Site not found.");
+            if (site.Status == "Inactive")
+                throw new InvalidOperationException(
+                    $"Cannot assign a protocol to '{site.Name}' because it is Inactive. Activate the site first.");
+
+            // Block assignment if protocol is not Upcoming
+            var protocol = await _db.Protocols.FindAsync(req.ProtocolID);
+            if (protocol == null)
+                throw new InvalidOperationException("Protocol not found.");
+            if (protocol.Status != "Upcoming")
+                throw new InvalidOperationException(
+                    $"Cannot assign a site to '{protocol.Title}' because it is {protocol.Status}. Sites can only be added to Upcoming protocols.");
+
             var sp = new SiteProtocol
             {
                 SiteID = req.SiteID,
@@ -87,6 +112,9 @@ namespace LifeTrack.SiteService.Repositories
 
             _db.SiteProtocols.Add(sp);
             await _db.SaveChangesAsync();
+
+            // Auto-activate the investigator when first assigned to a site-protocol
+            await SetInvestigatorActiveAsync(req.InvestigatorID, true);
 
             return (await GetByIdAsync(sp.SiteProtocolID))!;
         }
@@ -103,12 +131,38 @@ namespace LifeTrack.SiteService.Repositories
 
         public async Task<bool> DeleteAsync(long id)
         {
-            var sp = await _db.SiteProtocols.FindAsync(id);
+            var sp = await _db.SiteProtocols
+                .FirstOrDefaultAsync(x => x.SiteProtocolID == id);
             if (sp == null) return false;
+
+            long investigatorId = sp.InvestigatorID;
 
             _db.SiteProtocols.Remove(sp);
             await _db.SaveChangesAsync();
+
+            // Check if investigator still has any remaining site-protocols
+            bool hasOtherAssignments = await _db.SiteProtocols
+                .AnyAsync(x => x.InvestigatorID == investigatorId);
+
+            // If no more assignments → auto-deactivate
+            if (!hasOtherAssignments)
+                await SetInvestigatorActiveAsync(investigatorId, false);
+
             return true;
+        }
+
+        // ── Set investigator IsActive directly via shared DbContext ──────────
+        private async Task SetInvestigatorActiveAsync(long userId, bool active)
+        {
+            var user = await _db.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserID == userId
+                                       && u.Role != null
+                                       && u.Role.RoleName == "Investigator");
+            if (user == null) return;
+
+            user.IsActive = active;
+            await _db.SaveChangesAsync();
         }
     }
 }

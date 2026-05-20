@@ -26,6 +26,14 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'my-dashboard',
+    loadComponent: () =>
+      import('./features/patient-dashboard/patient-dashboard.component')
+        .then(m => m.PatientDashboardComponent),
+    canActivate: [AuthGuard],
+    data: { roles: ['Patient'] }
+  },
+  {
     path: 'notifications',
     loadComponent: () =>
       import('./features/notifications/notifications.component')

@@ -1,0 +1,157 @@
+<!-- patient-dashboard.component.html -->
+<style>
+.pd-invite-card{background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:20px 22px;margin-bottom:14px;}
+.pd-invite-card.pending{border-left:4px solid #f59e0b;border-radius:0 14px 14px 0;}
+.pd-invite-title{font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:6px;}
+.pd-invite-meta{font-size:13px;color:#888;margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap;}
+.pd-invite-actions{display:flex;gap:10px;}
+.pd-accept-btn{padding:8px 20px;border-radius:8px;background:#1a3a8f;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;}
+.pd-accept-btn:hover{background:#152f75;}
+.pd-decline-btn{padding:8px 20px;border-radius:8px;background:transparent;color:#ef4444;border:1.5px solid #ef4444;font-size:13px;font-weight:500;cursor:pointer;}
+.pd-decline-btn:hover{background:#fce8e6;}
+.pd-active-card{background:#fff;border:0.5px solid #e5e7eb;border-radius:12px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.pd-section-title{font-size:13px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;margin-top:24px;}
+.pd-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px;}
+.pd-kpi{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:12px;}
+.pd-kpi-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.pd-kpi-val{font-size:24px;font-weight:700;color:#1a1a2e;}
+.pd-kpi-lbl{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.04em;}
+.pd-empty{padding:32px;text-align:center;color:#aaa;font-size:13px;background:#f9fafb;border-radius:12px;}
+.pd-notification-dot{display:inline-flex;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:6px;}
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <span class="current">LifeTrack</span>
+        <span class="sep">/</span>
+        <span class="current">My Dashboard</span>
+      </div>
+    </div>
+
+    <div class="lt-content">
+
+      <!-- Greeting -->
+      <div style="font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">
+        Welcome, {{ userName }} 👋
+      </div>
+      <div style="font-size:13px;color:#888;margin-bottom:20px;">
+        Your clinical trial participation overview
+      </div>
+
+      <div class="lt-alert lt-alert-success" *ngIf="successMsg">{{ successMsg }}</div>
+      <div class="lt-alert lt-alert-error" *ngIf="errorMsg">{{ errorMsg }}</div>
+
+      <!-- KPI cards -->
+      <div class="pd-kpi-grid">
+        <div class="pd-kpi">
+          <div class="pd-kpi-icon" style="background:#fef3e2;">🔔</div>
+          <div>
+            <div class="pd-kpi-lbl">Pending Actions</div>
+            <div class="pd-kpi-val">{{ pendingInvitations.length + pendingWithdrawals.length }}</div>
+          </div>
+        </div>
+        <div class="pd-kpi">
+          <div class="pd-kpi-icon" style="background:#e6f4ea;">✅</div>
+          <div>
+            <div class="pd-kpi-lbl">Active Trials</div>
+            <div class="pd-kpi-val">{{ activeEnrollments.length }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lt-loading-row" *ngIf="isLoading">
+        <span class="lt-spinner"></span> Loading...
+      </div>
+
+      <!-- Pending invitations -->
+      <div *ngIf="!isLoading">
+        <div class="pd-section-title">
+          <span class="pd-notification-dot" *ngIf="pendingInvitations.length > 0"></span>
+          Enrollment Invitations
+        </div>
+
+        <div *ngIf="pendingInvitations.length === 0" class="pd-empty">
+          No pending invitations at this time.
+        </div>
+
+        <div *ngFor="let inv of pendingInvitations" class="pd-invite-card pending">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div>
+              <div class="pd-invite-title">{{ inv.protocolTitle }}</div>
+              <div class="pd-invite-meta">
+                <span>🏥 {{ inv.siteName }}</span>
+                <span>📅 Invited: {{ inv.enrollmentDate | date:'dd MMM yyyy' }}</span>
+              </div>
+              <div style="font-size:13px;color:#555;margin-bottom:14px;">
+                You have been invited to participate in this clinical trial. Please review and respond.
+              </div>
+            </div>
+            <span style="padding:4px 12px;border-radius:20px;background:#fef3e2;color:#b45309;font-size:11px;font-weight:600;white-space:nowrap;">
+              Awaiting your response
+            </span>
+          </div>
+          <div class="pd-invite-actions">
+            <button class="pd-accept-btn" (click)="accept(inv.enrollmentID)">✓ Accept</button>
+            <button class="pd-decline-btn" (click)="decline(inv.enrollmentID)">✗ Decline</button>
+          </div>
+        </div>
+
+        <!-- Withdrawal consent requests -->
+        <div *ngIf="pendingWithdrawals.length > 0">
+          <div class="pd-section-title" style="margin-top:20px;">
+            <span class="pd-notification-dot" style="background:#ef4444;"></span>
+            Withdrawal Requests
+          </div>
+          <div *ngFor="let w of pendingWithdrawals" class="pd-invite-card"
+            style="border-left:4px solid #ef4444;border-radius:0 14px 14px 0;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+              <div>
+                <div class="pd-invite-title">{{ w.protocolTitle }}</div>
+                <div class="pd-invite-meta">
+                  <span>🏥 {{ w.siteName }}</span>
+                </div>
+                <div style="font-size:13px;color:#555;margin-bottom:14px;">
+                  Your investigator has requested to withdraw you from this trial. Please confirm or reject.
+                </div>
+              </div>
+              <span style="padding:4px 12px;border-radius:20px;background:#fce8e6;color:#c0392b;font-size:11px;font-weight:600;white-space:nowrap;">
+                Withdrawal Request
+              </span>
+            </div>
+            <div class="pd-invite-actions">
+              <button class="pd-decline-btn" style="background:#ef4444;color:#fff;border:none;"
+                (click)="confirmWithdrawal(w.enrollmentID)">Confirm Withdrawal</button>
+              <button class="pd-accept-btn" style="background:transparent;color:#1a3a8f;border:1.5px solid #1a3a8f;"
+                (click)="rejectWithdrawal(w.enrollmentID)">Stay in Trial</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active enrollments -->
+        <div class="pd-section-title" style="margin-top:28px;">Active Trials</div>
+
+        <div *ngIf="activeEnrollments.length === 0" class="pd-empty">
+          You are not currently enrolled in any active trials.
+        </div>
+
+        <div *ngFor="let e of activeEnrollments" class="pd-active-card">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1a1a2e;">{{ e.protocolTitle }}</div>
+            <div style="font-size:12px;color:#888;margin-top:3px;display:flex;gap:12px;">
+              <span>🏥 {{ e.siteName }}</span>
+              <span>Enrolled: {{ e.enrollmentDate | date:'dd MMM yyyy' }}</span>
+            </div>
+          </div>
+          <span style="padding:4px 12px;border-radius:20px;background:#e6f4ea;color:#27500a;font-size:11px;font-weight:600;">
+            Active
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

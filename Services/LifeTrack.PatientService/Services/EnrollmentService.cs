@@ -37,26 +37,38 @@ namespace LifeTrack.PatientService.Services
             var enrollment = await _repo.EnrollAsync(req);
 
             _audit.Log("CREATE", "Enrollment", enrollment.EnrollmentID,
-                $"Patient '{enrollment.PatientName}' enrolled in protocol '{enrollment.ProtocolTitle}' " +
-                $"at site '{enrollment.SiteName}'.");
+                $"Enrollment invitation sent to patient '{enrollment.PatientName}' " +
+                $"for protocol '{enrollment.ProtocolTitle}' at '{enrollment.SiteName}'. Status: Pending.");
 
-            return ApiResponse<EnrollmentDto>.Ok(enrollment, "Patient enrolled successfully.");
+            return ApiResponse<EnrollmentDto>.Ok(enrollment,
+                "Enrollment invitation sent. Awaiting patient consent.");
+        }
+
+        public async Task<ApiResponse<bool>> RespondAsync(long enrollmentId, bool accept)
+        {
+            var updated = await _repo.RespondAsync(enrollmentId, accept);
+            if (!updated)
+                return ApiResponse<bool>.Fail("Enrollment not found or already responded.");
+
+            var action = accept ? "accepted" : "declined";
+            _audit.Log("UPDATE", "Enrollment", enrollmentId,
+                $"Patient {action} enrollment invitation (ID: {enrollmentId}).");
+
+            return ApiResponse<bool>.Ok(true,
+                accept ? "Enrollment accepted. You are now active in this protocol."
+                       : "Enrollment declined.");
         }
 
         public async Task<ApiResponse<bool>> UpdateStatusAsync(long id, UpdateEnrollmentStatusRequest req)
         {
             var updated = await _repo.UpdateStatusAsync(id, req);
+            if (!updated)
+                return ApiResponse<bool>.Fail("Enrollment not found.");
 
-            if (updated)
-                _audit.Log("UPDATE", "Enrollment", id,
-                    $"Enrollment status updated to '{req.Status}'." +
-                    (string.IsNullOrEmpty(req.WithdrawalReason)
-                        ? ""
-                        : $" Reason: '{req.WithdrawalReason}'."));
+            _audit.Log("UPDATE", "Enrollment", id,
+                $"Enrollment status updated to '{req.Status}'.");
 
-            return updated
-                ? ApiResponse<bool>.Ok(true, "Enrollment status updated.")
-                : ApiResponse<bool>.Fail("Enrollment not found.");
+            return ApiResponse<bool>.Ok(true, "Enrollment status updated.");
         }
     }
 }

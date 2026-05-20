@@ -86,14 +86,70 @@ namespace LifeTrack.ProtocolService.Repositories
             return true;
         }
 
+        // ── Archive ───────────────────────────────────────────────────────────
+
+        public async Task<bool> ArchiveAsync(long id)
+        {
+            var protocol = await _context.Protocols.FindAsync(id);
+            if (protocol == null) return false;
+            if (protocol.Status != "Upcoming")
+                throw new InvalidOperationException(
+                    $"Only Upcoming protocols can be archived. This protocol is {protocol.Status}.");
+            protocol.Status = "Archived";
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         // ── Delete ────────────────────────────────────────────────────────────
 
         public async Task<bool> DeleteAsync(long id)
         {
-            var protocol = await _context.Protocols.FindAsync(id);
+            var protocol = await _context.Protocols
+                .Include(p => p.SiteProtocols)
+                    .ThenInclude(sp => sp.Enrollments)
+                        .ThenInclude(e => e.Visits)
+                .FirstOrDefaultAsync(p => p.ProtocolID == id);
+
             if (protocol == null) return false;
+
+            // Only allow deleting Archived protocols
+            if (protocol.Status != "Archived")
+                throw new InvalidOperationException(
+                    "Only Archived protocols can be permanently deleted. Archive the protocol first.");
+
+            // Collect investigator IDs before deletion (to check if they need deactivation)
+            var investigatorIds = protocol.SiteProtocols
+                .Select(sp => sp.InvestigatorID)
+                .Distinct()
+                .ToList();
+
+            // Delete in order: Visits → Enrollments → SiteProtocols → Protocol
+            foreach (var sp in protocol.SiteProtocols)
+            {
+                foreach (var enrollment in sp.Enrollments)
+                {
+                    _context.Visits.RemoveRange(enrollment.Visits);
+                }
+                _context.Enrollments.RemoveRange(sp.Enrollments);
+            }
+            _context.SiteProtocols.RemoveRange(protocol.SiteProtocols);
             _context.Protocols.Remove(protocol);
+
             await _context.SaveChangesAsync();
+
+            // Auto-deactivate investigators who no longer have any site-protocol assignments
+            foreach (var invId in investigatorIds)
+            {
+                bool hasOther = await _context.SiteProtocols
+                    .AnyAsync(sp => sp.InvestigatorID == invId);
+                if (!hasOther)
+                {
+                    var inv = await _context.Users.FindAsync(invId);
+                    if (inv != null) { inv.IsActive = false; }
+                }
+            }
+            await _context.SaveChangesAsync();
+
             return true;
         }
 

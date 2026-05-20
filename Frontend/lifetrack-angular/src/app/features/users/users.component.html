@@ -113,9 +113,21 @@
                 </span>
               </td>
 
-              <!-- Status — clickable toggle button -->
+              <!-- Status — system-managed for Investigators, toggleable for others -->
               <td>
-                <button
+                <!-- Investigator: status badge only, not clickable -->
+                <div *ngIf="u.roleName === 'Investigator'"
+                  class="lt-status-toggle"
+                  [class.active]="u.isActive"
+                  [class.inactive]="!u.isActive"
+                  style="cursor:default;pointer-events:none;"
+                  [title]="u.isActive ? 'Active — has assigned protocols' : 'Inactive — no protocol assigned'">
+                  <span class="status-dot"></span>
+                  {{ u.isActive ? 'Active' : 'Inactive' }}
+                  <span style="font-size:10px;color:#aaa;margin-left:4px;">auto</span>
+                </div>
+                <!-- Other roles: clickable toggle -->
+                <button *ngIf="u.roleName !== 'Investigator'"
                   class="lt-status-toggle"
                   [class.active]="u.isActive"
                   [class.inactive]="!u.isActive"
@@ -146,8 +158,8 @@
                     Delete
                   </button>
 
-                  <!-- Greyed hint when active -->
-                  <span *ngIf="u.isActive && canToggle(u)"
+                  <!-- Greyed hint when active (not for investigators) -->
+                  <span *ngIf="u.isActive && canToggle(u) && u.roleName !== 'Investigator'"
                         style="font-size:11px; color:var(--text-muted); white-space:nowrap;">
                     Deactivate first
                   </span>
@@ -189,7 +201,12 @@
         <input class="lt-form-control"
                [(ngModel)]="form.phone"
                placeholder="10-digit number"
+               type="tel"
+               maxlength="10"
+               (keypress)="$event.charCode >= 48 && $event.charCode <= 57 || $event.preventDefault()"
+               (input)="form.phone = form.phone.replace(/[^0-9]/g, '').slice(0,10)"
                autocomplete="off" />
+        <span style="font-size:11px;color:#aaa;margin-top:3px;display:block;">Numbers only, exactly 10 digits</span>
       </div>
     </div>
 

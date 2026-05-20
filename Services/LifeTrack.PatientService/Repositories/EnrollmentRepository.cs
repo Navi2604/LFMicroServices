@@ -44,9 +44,9 @@ namespace LifeTrack.PatientService.Repositories
                     PatientName = e.Patient != null ? e.Patient.Name : "",
                     SiteProtocolID = e.SiteProtocolID,
                     SiteName = e.SiteProtocol != null && e.SiteProtocol.Site != null
-                                        ? e.SiteProtocol.Site.Name : "",
+                                           ? e.SiteProtocol.Site.Name : "",
                     ProtocolTitle = e.SiteProtocol != null && e.SiteProtocol.Protocol != null
-                                        ? e.SiteProtocol.Protocol.Title : "",
+                                           ? e.SiteProtocol.Protocol.Title : "",
                     Status = e.Status,
                     EnrollmentDate = e.EnrollmentDate,
                     WithdrawalReason = e.WithdrawalReason
@@ -80,6 +80,7 @@ namespace LifeTrack.PatientService.Repositories
             };
         }
 
+        // ── Creates enrollment as Pending — awaits patient consent ──
         public async Task<EnrollmentDto> EnrollAsync(EnrollPatientRequest req)
         {
             var enrollment = new Enrollment
@@ -88,13 +89,36 @@ namespace LifeTrack.PatientService.Repositories
                 SiteProtocolID = req.SiteProtocolID,
                 EnrollmentDate = DateTime.UtcNow,
                 ConsentDate = req.ConsentDate,
-                Status = "Active"
+                Status = "Pending"   // patient must accept
             };
 
             _db.Enrollments.Add(enrollment);
             await _db.SaveChangesAsync();
 
             return (await GetByIdAsync(enrollment.EnrollmentID))!;
+        }
+
+        // ── Patient accepts or declines a pending enrollment ──
+        public async Task<bool> RespondAsync(long enrollmentId, bool accept)
+        {
+            var e = await _db.Enrollments.FindAsync(enrollmentId);
+            if (e == null) return false;
+
+            if (e.Status == "Pending")
+            {
+                // Enrollment invitation — accept = Active, decline = Declined
+                e.Status = accept ? "Active" : "Declined";
+                e.ConsentDate = accept ? DateTime.UtcNow : null;
+            }
+            else if (e.Status == "PendingWithdrawal")
+            {
+                // Withdrawal request — accept (confirm) = Withdrawn, reject = back to Active
+                e.Status = accept ? "Withdrawn" : "Active";
+            }
+            else return false;
+
+            await _db.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> UpdateStatusAsync(long id, UpdateEnrollmentStatusRequest req)

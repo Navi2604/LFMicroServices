@@ -1,61 +1,72 @@
 <!-- login.component.html -->
-<div style="min-height:100vh; background:var(--page-bg); display:flex; align-items:center; justify-content:center; padding:24px;">
-  <div style="width:100%; max-width:400px;">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; }
+.login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0f1f5c 0%, #1a3a8f 50%, #0d2d6e 100%); padding: 24px; }
+.login-card { background: #fff; border-radius: 20px; padding: 40px 36px; width: 100%; max-width: 420px; box-shadow: 0 24px 80px rgba(0,0,0,0.25); }
+.login-logo { font-size: 26px; font-weight: 800; color: #1a3a8f; margin-bottom: 4px; }
+.login-logo span { color: #22c55e; }
+.login-tagline { font-size: 12px; color: #aaa; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 28px; }
+.login-title { font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+.login-subtitle { font-size: 13px; color: #888; margin-bottom: 24px; }
+/* Toggle */
+.login-toggle { display: flex; background: #f3f4f6; border-radius: 10px; padding: 4px; margin-bottom: 24px; gap: 4px; }
+.login-toggle-btn { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; color: #888; transition: all 0.15s; }
+.login-toggle-btn.active { background: #fff; color: #1a3a8f; box-shadow: 0 1px 4px rgba(0,0,0,0.1); font-weight: 600; }
+/* Form */
+.login-label { display: block; font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+.login-input { width: 100%; padding: 11px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; color: #1a1a2e; margin-bottom: 16px; outline: none; transition: border-color 0.15s; }
+.login-input:focus { border-color: #1a3a8f; }
+.login-btn { width: 100%; padding: 12px; background: #1a3a8f; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: background 0.15s; }
+.login-btn:hover { background: #152f75; }
+.login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.login-error { background: #fce8e6; color: #c0392b; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+.login-register { text-align: center; margin-top: 18px; font-size: 13px; color: #888; }
+.login-register a { color: #1a3a8f; font-weight: 500; text-decoration: none; }
+.login-register a:hover { text-decoration: underline; }
+.login-patient-note { background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #1a3a8f; margin-bottom: 16px; }
+</style>
 
-    <!-- Logo -->
-    <div style="text-align:center; margin-bottom:28px;">
-      <div style="font-size:28px; font-weight:700; color:var(--navy);">
-        Life<span style="color:#2563EB;">Track</span>
-      </div>
-      <div style="font-size:13px; color:var(--text-secondary); margin-top:5px;">
-        Clinical Trials & Patient Engagement Platform
-      </div>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">Life<span>Track</span></div>
+    <div class="login-tagline">Clinical Trials Platform</div>
+
+    <div class="login-title">Sign in</div>
+    <div class="login-subtitle">Choose your account type to continue</div>
+
+    <!-- Toggle: Staff / Patient -->
+    <div class="login-toggle">
+      <button class="login-toggle-btn" [class.active]="loginType==='staff'"
+        (click)="loginType='staff'; errorMsg=''">
+        👥 Staff
+      </button>
+      <button class="login-toggle-btn" [class.active]="loginType==='patient'"
+        (click)="loginType='patient'; errorMsg=''">
+        🧬 Patient
+      </button>
     </div>
 
-    <div class="lt-card">
-      <div style="padding:24px 24px 0;">
-        <div style="font-size:18px; font-weight:600; color:var(--text-heading); margin-bottom:4px;">
-          Sign in to your account
-        </div>
-        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:22px;">
-          Use your LifeTrack credentials to continue.
-        </div>
-
-        <div class="lt-alert lt-alert-error" *ngIf="errorMessage">{{ errorMessage }}</div>
-
-        <form (ngSubmit)="onSubmit()">
-          <div class="lt-form-group">
-            <label class="lt-form-label">Email address</label>
-            <input class="lt-form-control" type="email"
-                   [(ngModel)]="email" name="email"
-                   placeholder="you@lifetrack.io" />
-          </div>
-          <div class="lt-form-group" style="margin-bottom:20px;">
-            <label class="lt-form-label">Password</label>
-            <input class="lt-form-control" type="password"
-                   [(ngModel)]="password" name="password"
-                   placeholder="••••••••" />
-          </div>
-          <button type="submit" class="lt-btn lt-btn-primary"
-                  style="width:100%; justify-content:center; padding:11px;"
-                  [disabled]="isLoading">
-            <span class="lt-spinner" style="width:14px;height:14px;" *ngIf="isLoading"></span>
-            <span *ngIf="!isLoading">Sign in</span>
-          </button>
-        </form>
-
-        <div style="text-align:center; margin:16px 0 0; padding-bottom:24px;">
-          <a routerLink="/register"
-             style="font-size:13px; color:var(--text-secondary); text-decoration:none;">
-            Patient? <span style="color:#2563EB; font-weight:500;">Register here →</span>
-          </a>
-        </div>
-      </div>
+    <div class="login-patient-note" *ngIf="loginType==='patient'">
+      Patient portal — use your registered patient email and password.
     </div>
 
-    <div style="text-align:center; margin-top:16px; font-size:12px; color:var(--text-muted);">
-      Cognizant Internship Project · LifeTrack v2.0 Microservices
-    </div>
+    <div class="login-error" *ngIf="errorMsg">{{ errorMsg }}</div>
 
+    <label class="login-label">Email address</label>
+    <input class="login-input" type="email" [(ngModel)]="email"
+      placeholder="Enter your email" (keyup.enter)="login()" />
+
+    <label class="login-label">Password</label>
+    <input class="login-input" type="password" [(ngModel)]="password"
+      placeholder="Enter your password" (keyup.enter)="login()" />
+
+    <button class="login-btn" (click)="login()" [disabled]="isLoading">
+      {{ isLoading ? 'Signing in...' : 'Sign in' }}
+    </button>
+
+    <div class="login-register" *ngIf="loginType==='patient'">
+      New patient? <a routerLink="/register">Create an account</a>
+    </div>
   </div>
 </div>

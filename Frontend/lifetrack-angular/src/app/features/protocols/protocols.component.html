@@ -12,8 +12,8 @@
 .proto-btn-view:hover{background:#f7f8fc;}
 .proto-btn-edit{padding:5px 12px;font-size:12px;border-radius:6px;border:1px solid #185fa5;background:transparent;color:#185fa5;cursor:pointer;}
 .proto-btn-edit:hover{background:#e6f1fb;}
-.proto-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,20,50,0.45);display:flex;align-items:center;justify-content:center;padding:16px;}
-.proto-modal{background:#fff;border-radius:14px;width:100%;max-width:560px;box-shadow:0 8px 40px rgba(0,0,0,0.18);display:flex;flex-direction:column;max-height:90vh;overflow:hidden;}
+.proto-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,20,50,0.45);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+.proto-modal{background:#fff;border-radius:14px;width:100%;max-width:560px;box-shadow:0 8px 40px rgba(0,0,0,0.18);display:flex;flex-direction:column;max-height:calc(100vh - 32px);overflow:hidden;margin:auto;}
 .proto-modal-lg{max-width:640px;}
 .proto-modal-head{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid #e9ebf4;flex-shrink:0;}
 .proto-modal-head-text{flex:1;min-width:0;}
@@ -139,32 +139,119 @@
       <button class="proto-modal-x" (click)="closeView()">&#x2715;</button>
     </div>
     <div class="proto-modal-body" *ngIf="selectedProtocol">
-      <div class="proto-detail-grid">
-        <div class="proto-detail-cell">
-          <span class="proto-detail-lbl">Status</span>
-          <span class="lt-badge" [ngClass]="getStatusBadge(selectedProtocol.status)">{{ selectedProtocol.status }}</span>
+
+      <!-- View tabs -->
+      <div style="display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:16px;">
+        <button style="padding:8px 20px;border:none;background:transparent;font-size:13px;font-weight:500;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;"
+          [style.color]="viewTab==='details' ? '#1a3a8f' : '#888'"
+          [style.border-bottom-color]="viewTab==='details' ? '#1a3a8f' : 'transparent'"
+          (click)="viewTab='details'">Details</button>
+        <button style="padding:8px 20px;border:none;background:transparent;font-size:13px;font-weight:500;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;"
+          [style.color]="viewTab==='sites' ? '#1a3a8f' : '#888'"
+          [style.border-bottom-color]="viewTab==='sites' ? '#1a3a8f' : 'transparent'"
+          (click)="viewTab='sites'; loadProtocolSites()">
+          Sites
+          <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;font-size:11px;font-weight:600;background:#f0f2f8;color:#1a3a8f;margin-left:5px;">
+            {{ protocolSites.length }}
+          </span>
+        </button>
+        <button style="padding:8px 20px;border:none;background:transparent;font-size:13px;font-weight:500;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;"
+          [style.color]="viewTab==='patients' ? '#1a3a8f' : '#888'"
+          [style.border-bottom-color]="viewTab==='patients' ? '#1a3a8f' : 'transparent'"
+          (click)="viewTab='patients'; loadProtocolPatients()">
+          Patients
+          <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;font-size:11px;font-weight:600;background:#f0f2f8;color:#1a3a8f;margin-left:5px;">
+            {{ protocolPatients.length }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Details tab -->
+      <div *ngIf="viewTab==='details'">
+        <div class="proto-detail-grid">
+          <div class="proto-detail-cell">
+            <span class="proto-detail-lbl">Status</span>
+            <span class="lt-badge" [ngClass]="getStatusBadge(selectedProtocol.status)">{{ selectedProtocol.status }}</span>
+          </div>
+          <div class="proto-detail-cell">
+            <span class="proto-detail-lbl">Total phases</span>
+            <span class="proto-detail-val">{{ selectedPhases.length || '—' }}</span>
+          </div>
+          <div class="proto-detail-cell">
+            <span class="proto-detail-lbl">Start date</span>
+            <span class="proto-detail-val">{{ selectedProtocol.startDate | date:'dd MMM yyyy' }}</span>
+          </div>
+          <div class="proto-detail-cell">
+            <span class="proto-detail-lbl">End date</span>
+            <span class="proto-detail-val">{{ selectedProtocol.endDate | date:'dd MMM yyyy' }}</span>
+          </div>
         </div>
-        <div class="proto-detail-cell">
-          <span class="proto-detail-lbl">Total phases</span>
-          <span class="proto-detail-val">{{ selectedPhases.length || '—' }}</span>
-        </div>
-        <div class="proto-detail-cell">
-          <span class="proto-detail-lbl">Start date</span>
-          <span class="proto-detail-val">{{ selectedProtocol.startDate | date:'dd MMM yyyy' }}</span>
-        </div>
-        <div class="proto-detail-cell">
-          <span class="proto-detail-lbl">End date</span>
-          <span class="proto-detail-val">{{ selectedProtocol.endDate | date:'dd MMM yyyy' }}</span>
+        <div *ngIf="selectedPhases.length > 0">
+          <div class="proto-phases-title">Phase breakdown</div>
+          <div class="proto-phase-row" *ngFor="let ph of selectedPhases">
+            <span class="proto-phase-num">Phase {{ ph.phaseNumber }}</span>
+            <span class="proto-phase-dates">{{ ph.startDate | date:'dd MMM yyyy' }} — {{ ph.endDate | date:'dd MMM yyyy' }}</span>
+            <span class="lt-badge" [ngClass]="getStatusBadge(phaseStatusFor(ph.startDate, ph.endDate))">{{ phaseStatusFor(ph.startDate, ph.endDate) }}</span>
+          </div>
         </div>
       </div>
-      <div *ngIf="selectedPhases.length > 0">
-        <div class="proto-phases-title">Phase breakdown</div>
-        <div class="proto-phase-row" *ngFor="let ph of selectedPhases">
-          <span class="proto-phase-num">Phase {{ ph.phaseNumber }}</span>
-          <span class="proto-phase-dates">{{ ph.startDate | date:'dd MMM yyyy' }} — {{ ph.endDate | date:'dd MMM yyyy' }}</span>
-          <span class="lt-badge" [ngClass]="getStatusBadge(phaseStatusFor(ph.startDate, ph.endDate))">{{ phaseStatusFor(ph.startDate, ph.endDate) }}</span>
+
+      <!-- Sites tab -->
+      <div *ngIf="viewTab==='sites'">
+        <div *ngIf="sitesLoading" style="padding:24px;text-align:center;color:#aaa;font-size:13px;">Loading sites...</div>
+        <div *ngIf="!sitesLoading">
+          <div *ngFor="let sp of protocolSites"
+            style="border:0.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:8px;border-left:3px solid #22c55e;border-radius:0 10px 10px 0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div style="font-size:14px;font-weight:600;color:#1a1a2e;">{{ sp.siteName }}</div>
+              <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#e6f4ea;color:#27500a;">Active</span>
+            </div>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:#888;">
+              <span>👤 Investigator: <strong style="color:#444;">{{ sp.investigatorName || '—' }}</strong></span>
+              <span>🆔 Site Protocol ID: {{ sp.siteProtocolID }}</span>
+            </div>
+          </div>
+          <div *ngIf="protocolSites.length === 0"
+            style="padding:28px;text-align:center;color:#aaa;font-size:13px;background:#f9fafb;border-radius:10px;">
+            No sites assigned to this protocol yet.
+          </div>
         </div>
       </div>
+
+      <!-- Patients tab -->
+      <div *ngIf="viewTab==='patients'">
+        <div *ngIf="patientsLoading" style="padding:24px;text-align:center;color:#aaa;font-size:13px;">
+          Loading patients...
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;" *ngIf="!patientsLoading">
+          <thead>
+            <tr style="border-bottom:2px solid #e5e7eb;">
+              <th style="text-align:left;padding:8px 12px;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;">Patient ID</th>
+              <th style="text-align:left;padding:8px 12px;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;">Name</th>
+              <th style="text-align:left;padding:8px 12px;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;">Email</th>
+              <th style="text-align:left;padding:8px 12px;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of protocolPatients" style="border-bottom:1px solid #f5f5f8;">
+              <td style="padding:10px 12px;color:#1a3a8f;font-weight:500;">PT-{{ p.patientID }}</td>
+              <td style="padding:10px 12px;font-weight:500;color:#1a1a2e;">{{ p.name }}</td>
+              <td style="padding:10px 12px;color:#888;">{{ p.email }}</td>
+              <td style="padding:10px 12px;">
+                <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;"
+                  [style.background]="p.enrollmentStatus==='Active' ? '#e6f4ea' : '#f3f4f6'"
+                  [style.color]="p.enrollmentStatus==='Active' ? '#1e7e34' : '#6b7280'">
+                  {{ p.enrollmentStatus || 'Enrolled' }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="protocolPatients.length === 0">
+              <td colspan="4" style="padding:32px;text-align:center;color:#aaa;">No patients enrolled in this protocol.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
     </div>
     <div class="proto-modal-foot">
       <div class="proto-foot-right">
@@ -237,11 +324,59 @@
     <div class="proto-modal-foot" *ngIf="selectedProtocol">
       <div class="proto-foot-split">
         <div class="proto-foot-danger">
+
+      <!-- Edit: Site assignments -->
+      <div class="proto-section-title" style="margin-top:20px;">
+        <span>Site assignments</span>
+      </div>
+
+      <div class="lt-alert lt-alert-error" *ngIf="siteAssignmentError" style="margin-bottom:8px;">{{ siteAssignmentError }}</div>
+
+      <!-- Existing assignments — vertical stack -->
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
+        <div *ngFor="let sp of editSiteAssignments"
+          style="display:flex;align-items:center;justify-content:space-between;background:#f7f8fc;border:0.5px solid #e5e7eb;border-radius:8px;padding:10px 14px;">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:#1a1a2e;">{{ sp.siteName }}</div>
+            <div style="font-size:11px;color:#888;margin-top:2px;">Investigator: {{ sp.investigatorName || sp.investigatorID }}</div>
+          </div>
+          <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#e6f4ea;color:#27500a;white-space:nowrap;">Assigned</span>
+        </div>
+        <div *ngIf="editSiteAssignments.length === 0" style="font-size:12px;color:#aaa;">No sites assigned yet.</div>
+      </div>
+
+      <!-- Add new site — Upcoming only -->
+      <div *ngIf="selectedProtocol?.status === 'Upcoming'"
+        style="background:#f7f8fc;border:0.5px solid #e5e7eb;border-radius:10px;padding:14px;margin-top:8px;">
+        <div style="font-size:12px;font-weight:500;color:#555;margin-bottom:10px;">Add another site</div>
+        <div class="lt-form-row" style="margin-bottom:10px;">
+          <div class="lt-form-group">
+            <label class="lt-form-label">Site</label>
+            <select class="lt-form-control" [(ngModel)]="editNewAssignment.siteID">
+              <option value="0">Select site...</option>
+              <option *ngFor="let s of allSites" [value]="s.siteID">{{ s.name }} — {{ s.location }}</option>
+            </select>
+          </div>
+          <div class="lt-form-group">
+            <label class="lt-form-label">Investigator</label>
+            <select class="lt-form-control" [(ngModel)]="editNewAssignment.investigatorID">
+              <option value="0">Select investigator...</option>
+              <option *ngFor="let u of allInvestigators" [value]="u.userID">
+                {{ u.name }}{{ !u.isActive ? ' (inactive — will activate on assign)' : '' }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <button class="lt-btn lt-btn-secondary" style="font-size:12px;" (click)="addEditSiteAssignment()">+ Add site</button>
+      </div>
+
           <button class="proto-btn-archive" *ngIf="canArchive(selectedProtocol)" (click)="archive(selectedProtocol)">Archive</button>
-          <button class="proto-btn-delete" *ngIf="canDelete(selectedProtocol)" (click)="delete(selectedProtocol)">Delete</button>
+          <button class="proto-btn-delete" *ngIf="canDelete(selectedProtocol)" (click)="delete(selectedProtocol)">
+            {{ selectedProtocol.status === 'Archived' ? 'Delete permanently' : 'Move to archive' }}
+          </button>
           <span class="proto-tooltip-wrap" *ngIf="!canDelete(selectedProtocol)">
             <button class="proto-btn-del-dis" disabled>Delete</button>
-            <span class="proto-tooltip">Cannot delete an {{ selectedProtocol.status | lowercase }} protocol</span>
+            <span class="proto-tooltip">Only Upcoming protocols can be archived. Only Archived protocols can be permanently deleted.</span>
           </span>
         </div>
         <div class="proto-foot-main">
@@ -259,39 +394,54 @@
     <div class="proto-modal-head">
       <div class="proto-modal-head-text">
         <div class="proto-modal-title">New Protocol</div>
-        <div class="proto-modal-sub">Fill in details and define phases below.</div>
+        <div class="proto-modal-sub">Fill in the details, configure phases, then assign sites.</div>
       </div>
       <button class="proto-modal-x" (click)="showCreate=false; resetForm()">&#x2715;</button>
     </div>
+
     <div class="proto-modal-body">
+
       <div class="lt-alert lt-alert-error" *ngIf="errorMsg">{{ errorMsg }}</div>
-      <div class="lt-form-group">
+
+      <!-- Section 1: Basic info -->
+      <div class="proto-section-div">Protocol details</div>
+      <div class="lt-form-group" style="margin-bottom:12px;">
         <label class="lt-form-label">Title</label>
-        <input class="lt-form-control" [(ngModel)]="form.title" placeholder="Protocol title" />
+        <input class="lt-form-control" [(ngModel)]="form.title" placeholder="e.g. Cancer Trial Phase I" />
       </div>
       <div class="lt-form-row">
         <div class="lt-form-group">
-          <label class="lt-form-label">Start Date</label>
+          <label class="lt-form-label">Start date</label>
           <input class="lt-form-control" type="date" [(ngModel)]="form.startDate" [min]="today" (change)="onProtoDatesChange()" />
         </div>
         <div class="lt-form-group">
-          <label class="lt-form-label">End Date</label>
+          <label class="lt-form-label">End date</label>
           <input class="lt-form-control" type="date" [(ngModel)]="form.endDate" [min]="form.startDate" (change)="onProtoDatesChange()" />
         </div>
       </div>
+
+      <!-- Status preview -->
+      <div *ngIf="datesReady" style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <span style="font-size:12px;color:#888;">Computed status:</span>
+        <span class="lt-badge" [ngClass]="getStatusBadge(computedStatus)">{{ computedStatus }}</span>
+      </div>
+
+      <!-- Section 2: Phases — only after valid dates -->
       <ng-container *ngIf="datesReady">
-        <div class="proto-section-div">Phase Configuration</div>
-        <div class="lt-form-group" style="max-width:200px;">
+        <div class="proto-section-div">Phase configuration</div>
+        <div class="lt-form-group" style="max-width:180px;margin-bottom:16px;">
           <label class="lt-form-label">Number of phases</label>
-          <input class="lt-form-control" type="number" min="1" [(ngModel)]="phaseCount" placeholder="Enter any number" (input)="onPhaseCountInput()" />
-          <span class="proto-hint" *ngIf="!phaseCountError">Type a number — phases appear below</span>
+          <input class="lt-form-control" type="number" min="1" max="10"
+            [(ngModel)]="phaseCount" placeholder="e.g. 3"
+            (input)="onPhaseCountInput()" />
           <span class="proto-err" *ngIf="phaseCountError">{{ phaseCountError }}</span>
         </div>
+
         <div *ngIf="phases.length > 0">
           <div class="proto-phase-card" *ngFor="let phase of phases; let i = index">
             <div class="proto-phase-card-head">
               <span class="proto-phase-card-title">Phase {{ phase.phaseNumber }}</span>
-              <span class="lt-badge lt-badge-blue">Phase {{ phase.phaseNumber }} of {{ phases.length }}</span>
+              <span class="lt-badge lt-badge-blue">{{ i + 1 }} of {{ phases.length }}</span>
             </div>
             <div class="lt-form-row">
               <div class="lt-form-group">
@@ -312,11 +462,55 @@
           </div>
         </div>
       </ng-container>
-    </div>
+
+      <!-- Section 3: Site assignments — only after phases configured -->
+      <ng-container *ngIf="phases.length > 0">
+        <div class="proto-section-div">Site assignments
+          <span style="font-size:11px;color:#b45309;font-weight:400;margin-left:6px;">— assign at least one site</span>
+        </div>
+
+        <div class="lt-alert lt-alert-error" *ngIf="siteAssignmentError" style="margin-bottom:10px;">{{ siteAssignmentError }}</div>
+
+        <!-- Assigned list — vertical stack -->
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
+        <div *ngFor="let a of siteAssignments; let i = index"
+          style="display:flex;align-items:center;justify-content:space-between;background:#f7f8fc;border:0.5px solid #e5e7eb;border-radius:8px;padding:10px 14px;">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:#1a1a2e;">{{ getSiteName(a.siteID) }}</div>
+            <div style="font-size:11px;color:#888;margin-top:2px;">Investigator: {{ getInvestigatorName(a.investigatorID) }}</div>
+          </div>
+          <button style="background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:18px;padding:2px 6px;line-height:1;" (click)="removeSiteAssignment(i)">&#x2715;</button>
+        </div>
+        </div><!-- end assigned list -->
+
+        <div style="background:#f7f8fc;border:0.5px solid #e5e7eb;border-radius:10px;padding:14px;margin-top:4px;">
+          <div style="font-size:12px;font-weight:500;color:#555;margin-bottom:10px;">Add site</div>
+          <div class="lt-form-row" style="margin-bottom:10px;">
+            <div class="lt-form-group">
+              <label class="lt-form-label">Site</label>
+              <select class="lt-form-control" [(ngModel)]="newAssignment.siteID">
+                <option value="0">Select site...</option>
+                <option *ngFor="let s of allSites" [value]="s.siteID">{{ s.name }} — {{ s.location }}</option>
+              </select>
+            </div>
+            <div class="lt-form-group">
+              <label class="lt-form-label">Investigator</label>
+              <select class="lt-form-control" [(ngModel)]="newAssignment.investigatorID">
+                <option value="0">Select investigator...</option>
+                <option *ngFor="let u of allInvestigators" [value]="u.userID">{{ u.name }}</option>
+              </select>
+            </div>
+          </div>
+          <button class="lt-btn lt-btn-secondary" style="font-size:12px;" (click)="addSiteAssignment()">+ Add site</button>
+        </div>
+      </ng-container>
+
+    </div><!-- end modal-body -->
+
     <div class="proto-modal-foot">
       <div class="proto-foot-right">
         <button class="proto-btn-cancel" (click)="showCreate=false; resetForm()">Cancel</button>
-        <button class="proto-btn-save" (click)="create()" [disabled]="phases.length === 0">Create Protocol</button>
+        <button class="proto-btn-save" (click)="create()">Create Protocol</button>
       </div>
     </div>
   </div>

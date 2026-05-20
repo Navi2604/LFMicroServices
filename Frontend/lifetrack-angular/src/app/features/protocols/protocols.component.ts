@@ -3,7 +3,7 @@ import { Component, OnInit, ChangeDetectorRef, ViewEncapsulation } from '@angula
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ProtocolApiService, ProtocolDto } from '../../core/services/api.service';
+import { ProtocolApiService, ProtocolDto, SiteProtocolApiService, EnrollmentApiService, PatientApiService, SiteApiService, UserApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SidebarComponent } from '../../shared/sidebar.component';
 
@@ -33,7 +33,9 @@ export class ProtocolsComponent implements OnInit {
   successMsg  = '';
   errorMsg    = '';
   canEdit     = false;
-  unreadCount = 0;
+  unreadCount    = 0;
+  isInvestigator = false;
+  private userId = 0;
 
   // ── Tab state ─────────────────────────────────────────────────────────────
   activeTab: 'all' | 'upcoming' | 'ongoing' | 'completed' | 'archived' = 'all';
@@ -43,7 +45,12 @@ export class ProtocolsComponent implements OnInit {
   showView    = false;
   showEdit    = false;
   selectedProtocol: ProtocolDto | null = null;
-  selectedPhases: ParsedPhase[] = [];
+  selectedPhases:   ParsedPhase[] = [];
+  viewTab         = 'details';
+  protocolPatients: any[] = [];
+  patientsLoading  = false;
+  protocolSites:   any[] = [];
+  sitesLoading     = false;
 
   // ── Create form state ─────────────────────────────────────────────────────
   form = { title: '', startDate: '', endDate: '' };
@@ -58,15 +65,40 @@ export class ProtocolsComponent implements OnInit {
   editPhases: PhaseForm[] = [];
   editPhaseCountError = '';
 
+  // ── Site assignment state ─────────────────────────────────────────────────
+  allSites:          any[] = [];
+  allInvestigators:  any[] = [];
+  // For create form
+  siteAssignments:   { siteID: number; investigatorID: number }[] = [];
+  newAssignment      = { siteID: 0, investigatorID: 0 };
+  // For edit form
+  editSiteAssignments:    any[] = [];   // existing site-protocols
+  editNewAssignment       = { siteID: 0, investigatorID: 0 };
+  siteAssignmentError     = '';
+
   constructor(
-    private protocolApi: ProtocolApiService,
-    private authService: AuthService,
-    private cdr: ChangeDetectorRef
+    private protocolApi:     ProtocolApiService,
+    private siteProtocolApi: SiteProtocolApiService,
+    private enrollmentApi:   EnrollmentApiService,
+    private patientApi:      PatientApiService,
+    private siteApi:         SiteApiService,
+    private userApi:         UserApiService,
+    private authService:     AuthService,
+    private cdr:             ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    this.canEdit = ['Admin', 'ClinicalTrialManager'].includes(this.authService.getRole());
+    const role         = this.authService.getRole();
+    this.userId        = this.authService.getUserId();
+    this.isInvestigator = role === 'Investigator';
+    this.canEdit       = ['Admin', 'ClinicalTrialManager'].includes(role);
     this.load();
+    if (this.canEdit) {
+      this.siteApi.getAll().subscribe(r => { if (r.success) this.allSites = r.data.filter((s: any) => s.status === 'Active'); });
+      this.userApi.getAll().subscribe(r => {
+        if (r.success) this.allInvestigators = r.data.filter((u: any) => u.roleName === 'Investigator');
+      });
+    }
   }
 
   // ── Tab switching ─────────────────────────────────────────────────────────
@@ -141,9 +173,62 @@ export class ProtocolsComponent implements OnInit {
   // ── View modal ────────────────────────────────────────────────────────────
 
   openView(p: ProtocolDto): void {
-    this.selectedProtocol = p;
-    this.selectedPhases = this.parsePhasesFromDto(p);
-    this.showView = true;
+    this.selectedProtocol  = p;
+    this.selectedPhases    = this.parsePhasesFromDto(p);
+    this.viewTab           = 'details';
+    this.protocolPatients  = [];
+    this.protocolSites     = [];
+    this.showView          = true;
+    this.loadProtocolSites();
+  }
+
+  loadProtocolSites(): void {
+    if (!this.selectedProtocol) return;
+    this.sitesLoading = true;
+    this.siteProtocolApi.getAll({ protocolID: this.selectedProtocol.protocolID }).subscribe(r => {
+      this.sitesLoading = false;
+      if (r.success) {
+        this.protocolSites = r.data;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadProtocolPatients(): void {
+    if (!this.selectedProtocol) return;
+    this.patientsLoading = true;
+    const protocolId = this.selectedProtocol.protocolID;
+
+    // Get site-protocols for this protocol (filtered by investigator if needed)
+    const params: any = { protocolID: protocolId };
+    if (this.isInvestigator) params['investigatorID'] = this.userId;
+
+    this.siteProtocolApi.getAll(params).subscribe(sp => {
+      if (sp.success && sp.data.length > 0) {
+        const spIds = sp.data.map((x: any) => x.siteProtocolID);
+
+        Promise.all(spIds.map((id: number) =>
+          this.enrollmentApi.getAll({ siteProtocolId: id }).toPromise()
+        )).then(results => {
+          const patientIds = new Set<number>();
+          results.forEach((res: any) => {
+            if (res?.success) res.data.forEach((e: any) => patientIds.add(e.patientID));
+          });
+
+          this.patientApi.getAll().subscribe(r => {
+            this.patientsLoading = false;
+            if (r.success) {
+              this.protocolPatients = r.data.filter(p => patientIds.has(p.patientID));
+              this.cdr.detectChanges();
+            }
+          });
+        });
+      } else {
+        this.patientsLoading  = false;
+        this.protocolPatients = [];
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   closeView(): void {
@@ -169,7 +254,11 @@ export class ProtocolsComponent implements OnInit {
     }));
     this.editPhaseCount = this.editPhases.length || null;
     this.editPhaseCountError = '';
+    this.editSiteAssignments = [];
+    this.editNewAssignment = { siteID: 0, investigatorID: 0 };
+    this.siteAssignmentError = '';
     this.showEdit = true;
+    this.loadEditSiteAssignments();
   }
 
   closeEdit(): void {
@@ -263,32 +352,38 @@ export class ProtocolsComponent implements OnInit {
   // ── Delete ────────────────────────────────────────────────────────────────
 
   delete(p: ProtocolDto): void {
-    if (!confirm(`Delete protocol "${p.title}"? This cannot be undone.`)) return;
-    this.protocolApi.delete(p.protocolID).subscribe({
-      next: r => {
-        if (r.success) {
-          this.closeEdit();
-          this.load();
-          this.showMsg('success', `Protocol "${p.title}" deleted.`);
-        } else {
-          this.showMsg('error', r.message);
-        }
-      },
-      error: err => this.showMsg('error', err?.error?.message || 'Delete failed.')
-    });
+    if (p.status === 'Upcoming') {
+      if (!confirm(`Archive protocol "${p.title}"? It will move to the Archived tab where it can be permanently deleted.`)) return;
+      this.protocolApi.archive(p.protocolID).subscribe({
+        next: r => {
+          if (r.success) {
+            this.closeEdit();
+            this.showMsg('success', `Protocol "${p.title}" archived. Go to the Archived tab to permanently delete it.`);
+            this.load();
+          } else { this.showMsg('error', r.message); }
+        },
+        error: err => this.showMsg('error', err?.error?.message || 'Archive failed.')
+      });
+    } else if (p.status === 'Archived') {
+      if (!confirm(`Permanently delete "${p.title}"? This cannot be undone.`)) return;
+      this.protocolApi.delete(p.protocolID).subscribe({
+        next: r => {
+          if (r.success) {
+            this.closeEdit();
+            this.showMsg('success', `Protocol "${p.title}" permanently deleted.`);
+            this.load();
+          } else { this.showMsg('error', r.message); }
+        },
+        error: err => this.showMsg('error', err?.error?.message || 'Delete failed.')
+      });
+    }
   }
 
   // ── Archive ───────────────────────────────────────────────────────────────
 
   archive(p: ProtocolDto): void {
-    if (!confirm(`Archive protocol "${p.title}"? It will no longer appear in active lists.`)) return;
-    this.protocolApi.update(p.protocolID, {
-      title:     p.title,
-      startDate: p.startDate,
-      endDate:   p.endDate,
-      status:    'Archived',
-      phases:    this.parsePhasesFromDto(p)
-    }).subscribe({
+    if (!confirm(`Archive protocol "${p.title}"? It will move to the Archived tab.`)) return;
+    this.protocolApi.archive(p.protocolID).subscribe({
       next: r => {
         if (r.success) {
           this.closeEdit();
@@ -346,6 +441,58 @@ export class ProtocolsComponent implements OnInit {
     }
   }
 
+  // ── Site assignment helpers ───────────────────────────────────────────────
+
+  getSiteName(id: number): string {
+    return this.allSites.find(s => s.siteID === +id)?.name ?? '';
+  }
+
+  getInvestigatorName(id: number): string {
+    return this.allInvestigators.find(u => u.userID === +id)?.name ?? '';
+  }
+
+  addSiteAssignment(): void {
+    if (!this.newAssignment.siteID || !this.newAssignment.investigatorID) {
+      this.siteAssignmentError = 'Select both a site and an investigator.'; return;
+    }
+    const dup = this.siteAssignments.find(a => a.siteID === +this.newAssignment.siteID);
+    if (dup) { this.siteAssignmentError = 'This site is already assigned.'; return; }
+    this.siteAssignments.push({ siteID: +this.newAssignment.siteID, investigatorID: +this.newAssignment.investigatorID });
+    this.newAssignment = { siteID: 0, investigatorID: 0 };
+    this.siteAssignmentError = '';
+  }
+
+  removeSiteAssignment(i: number): void { this.siteAssignments.splice(i, 1); }
+
+  addEditSiteAssignment(): void {
+    if (!this.editNewAssignment.siteID || !this.editNewAssignment.investigatorID) {
+      this.siteAssignmentError = 'Select both a site and an investigator.'; return;
+    }
+    const dup = this.editSiteAssignments.find((a: any) => a.siteID === +this.editNewAssignment.siteID);
+    if (dup) { this.siteAssignmentError = 'This site is already assigned.'; return; }
+    // Save to backend immediately
+    if (!this.selectedProtocol) return;
+    this.siteProtocolApi.create({
+      protocolID:     this.selectedProtocol.protocolID,
+      siteID:         +this.editNewAssignment.siteID,
+      investigatorID: +this.editNewAssignment.investigatorID,
+      status:         'Active'
+    }).subscribe(r => {
+      if (r.success) {
+        this.loadEditSiteAssignments();
+        this.editNewAssignment = { siteID: 0, investigatorID: 0 };
+        this.siteAssignmentError = '';
+      } else { this.siteAssignmentError = r.message; }
+    });
+  }
+
+  loadEditSiteAssignments(): void {
+    if (!this.selectedProtocol) return;
+    this.siteProtocolApi.getAll({ protocolID: this.selectedProtocol.protocolID }).subscribe(r => {
+      if (r.success) { this.editSiteAssignments = r.data; this.cdr.detectChanges(); }
+    });
+  }
+
   create(): void {
     if (!this.form.title.trim()) { this.errorMsg = 'Title is required.'; return; }
     if (!this.datesReady) { this.errorMsg = 'Set valid protocol start and end dates first.'; return; }
@@ -364,10 +511,26 @@ export class ProtocolsComponent implements OnInit {
     this.protocolApi.create(payload).subscribe({
       next: r => {
         if (r.success) {
-          this.showCreate = false;
-          this.resetForm();
-          this.load();
-          this.showMsg('success', `Protocol "${payload.title}" created.`);
+          const protocolId = r.data?.protocolID;
+          // Create site-protocol records
+          if (protocolId && this.siteAssignments.length > 0) {
+            Promise.all(this.siteAssignments.map(a =>
+              this.siteProtocolApi.create({
+                protocolID: protocolId, siteID: a.siteID,
+                investigatorID: a.investigatorID, status: 'Active'
+              }).toPromise()
+            )).then(() => {
+              this.showCreate = false;
+              this.resetForm();
+              this.load();
+              this.showMsg('success', `Protocol "${payload.title}" created with ${this.siteAssignments.length} site(s).`);
+            });
+          } else {
+            this.showCreate = false;
+            this.resetForm();
+            this.load();
+            this.showMsg('success', `Protocol "${payload.title}" created.`);
+          }
         } else {
           this.showMsg('error', r.message);
         }
@@ -380,6 +543,28 @@ export class ProtocolsComponent implements OnInit {
 
   load(): void {
     this.isLoading = true;
+
+    if (this.isInvestigator) {
+      this.siteProtocolApi.getAll({ investigatorID: this.userId }).subscribe(sp => {
+        if (sp.success) {
+          const protocolIds = new Set(sp.data.map((x: any) => x.protocolID));
+          this.protocolApi.getAll().subscribe(r => {
+            this.isLoading = false;
+            if (r.success) {
+              const mine = r.data.filter(p => protocolIds.has(p.protocolID));
+              this.protocols = mine;
+              this.applyFilter();
+              this.cdr.detectChanges();
+            }
+          });
+        } else {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        }
+      });
+      return;
+    }
+
     this.protocolApi.getAll().subscribe({
       next: r => {
         this.isLoading = false;
@@ -398,6 +583,9 @@ export class ProtocolsComponent implements OnInit {
     this.phases = [];
     this.phaseCount = null;
     this.phaseCountError = '';
+    this.siteAssignments = [];
+    this.newAssignment = { siteID: 0, investigatorID: 0 };
+    this.siteAssignmentError = '';
     this.errorMsg = '';
   }
 
@@ -428,6 +616,6 @@ export class ProtocolsComponent implements OnInit {
     return map[status] ?? 'lt-badge-gray';
   }
 
-  canDelete(p: ProtocolDto): boolean { return p.status === 'Upcoming'; }
+  canDelete(p: ProtocolDto): boolean { return p.status === 'Upcoming' || p.status === 'Archived'; }
   canArchive(p: ProtocolDto): boolean { return p.status === 'Ongoing' || p.status === 'Completed'; }
-} 
+}

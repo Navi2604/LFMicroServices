@@ -51,6 +51,15 @@ namespace LifeTrack.ProtocolService.Controllers
             return result.Success ? Ok(result) : NotFound(result);
         }
 
+        // PATCH /api/protocols/{id}/archive
+        [HttpPatch("{id}/archive")]
+        [Authorize(Roles = "Admin,ClinicalTrialManager")]
+        public async Task<IActionResult> Archive(long id)
+        {
+            var result = await _service.ArchiveAsync(id);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
         // DELETE /api/protocols/{id}
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin,ClinicalTrialManager")]

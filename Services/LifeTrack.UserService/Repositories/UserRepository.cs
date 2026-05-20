@@ -84,8 +84,17 @@ namespace LifeTrack.UserService.Repositories
 
         public async Task<bool> ToggleActiveAsync(long id)
         {
-            var user = await _db.Users.FindAsync(id);
+            var user = await _db.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserID == id);
+
             if (user == null) return false;
+
+            // Investigators are system-managed — block manual toggle
+            if (user.Role?.RoleName == "Investigator")
+                throw new InvalidOperationException(
+                    "Investigator status is managed automatically by site-protocol assignments. " +
+                    "Assign or remove them from a protocol to change their status.");
 
             user.IsActive = !user.IsActive;
             await _db.SaveChangesAsync();

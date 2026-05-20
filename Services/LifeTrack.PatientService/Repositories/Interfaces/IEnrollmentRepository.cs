@@ -11,6 +11,7 @@ namespace LifeTrack.PatientService.Repositories.Interfaces
         Task<List<EnrollmentDto>> GetAllAsync(EnrollmentFilterDto filter);
         Task<EnrollmentDto?> GetByIdAsync(long id);
         Task<EnrollmentDto> EnrollAsync(EnrollPatientRequest req);
+        Task<bool> RespondAsync(long enrollmentId, bool accept);
         Task<bool> UpdateStatusAsync(long id, UpdateEnrollmentStatusRequest req);
     }
 }

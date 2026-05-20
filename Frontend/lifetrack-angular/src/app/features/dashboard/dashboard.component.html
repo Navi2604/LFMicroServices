@@ -1,166 +1,229 @@
-<!-- ============================================================
-     dashboard.component.html
-     Role-aware dashboard — Admin / CTM / Investigator /
-     DataManager / RegulatoryOfficer / Patient
-     ============================================================ -->
+<!-- dashboard.component.html -->
+<style>
+.db-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px;}
+.db-kpi{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px 20px;display:flex;align-items:flex-start;gap:14px;}
+.db-kpi-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.db-kpi-icon.blue{background:#e8f0fe;} .db-kpi-icon.green{background:#e6f4ea;} .db-kpi-icon.amber{background:#fef3e2;} .db-kpi-icon.purple{background:#f3e8fd;}
+.db-kpi-value{font-size:28px;font-weight:700;color:#1a1a2e;line-height:1.1;}
+.db-kpi-label{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;}
+.db-kpi-sub{font-size:11px;color:#aaa;margin-top:3px;}
+.db-main-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;}
+.db-left{display:flex;flex-direction:column;gap:16px;}
+.db-right{display:flex;flex-direction:column;gap:16px;}
+.db-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px 20px;}
+.db-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.db-card-title{font-size:15px;font-weight:600;color:#1a1a2e;}
+.db-card-link{font-size:12px;color:#1a3a8f;text-decoration:none;font-weight:500;}
+.db-card-link:hover{text-decoration:underline;}
+.db-list-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f8;}
+.db-list-row:last-child{border-bottom:none;}
+.db-list-name{font-size:13px;font-weight:500;color:#1a1a2e;}
+.db-list-sub{font-size:11px;color:#aaa;margin-top:2px;}
+.db-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.db-badge-green{background:#e6f4ea;color:#1e7e34;} .db-badge-amber{background:#fef3e2;color:#b45309;}
+.db-badge-blue{background:#e8f0fe;color:#1a56db;} .db-badge-gray{background:#f3f4f6;color:#6b7280;} .db-badge-red{background:#fce8e6;color:#c0392b;}
+.db-quick-action{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid #e5e7eb;border-radius:10px;cursor:pointer;margin-bottom:8px;transition:background 0.12s;text-decoration:none;}
+.db-quick-action:hover{background:#f7f8fc;border-color:#c7d2fe;} .db-quick-action:last-child{margin-bottom:0;}
+.db-qa-left{display:flex;align-items:center;gap:10px;}
+.db-qa-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.db-qa-label{font-size:13px;font-weight:500;color:#1a1a2e;}
+.db-qa-arrow{font-size:14px;color:#aaa;}
+.db-audit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:2px;}
+.db-audit-row{display:flex;align-items:flex-start;gap:10px;padding:10px 8px;border-bottom:1px solid #f5f5f8;}
+.db-audit-dot{width:8px;height:8px;border-radius:50%;background:#1a3a8f;margin-top:5px;flex-shrink:0;}
+.db-audit-dot.green{background:#22c55e;} .db-audit-dot.amber{background:#f59e0b;} .db-audit-dot.red{background:#ef4444;}
+.db-audit-msg{font-size:12px;color:#444;line-height:1.4;}
+.db-audit-time{font-size:11px;color:#aaa;margin-top:2px;}
+.db-greeting{font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:2px;}
+.db-greeting-sub{font-size:13px;color:#888;margin-bottom:20px;}
+.db-empty{font-size:13px;color:#aaa;padding:16px 0;text-align:center;}
+</style>
 
 <div class="lt-page">
   <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
-
   <div class="lt-main">
-
-    <!-- Topbar -->
     <div class="lt-topbar">
       <div class="lt-breadcrumb">
-        <span class="current">LifeTrack</span>
-        <span class="sep">/</span>
-        <span class="current">Dashboard</span>
+        <span class="current">LifeTrack</span><span class="sep">/</span><span class="current">Dashboard</span>
       </div>
       <div class="lt-topbar-right">
-        <button class="lt-notif-btn" routerLink="/notifications">
-          🔔
-          <span class="dot" *ngIf="unreadCount > 0"></span>
-        </button>
+        <button class="lt-notif-btn" routerLink="/notifications">🔔<span class="dot" *ngIf="unreadCount > 0"></span></button>
       </div>
     </div>
 
-    <!-- Content -->
     <div class="lt-content">
 
-      <!-- Page header -->
-      <div class="lt-page-header">
-        <div class="lt-page-title">Dashboard</div>
-        <div class="lt-page-subtitle">Welcome back, <strong>{{ userName }}</strong></div>
+      <!-- Greeting -->
+      <div class="db-greeting">Good day, {{ userName }} 👋</div>
+      <div class="db-greeting-sub" *ngIf="hasRole(['Admin'])">Admin Console — full platform overview</div>
+      <div class="db-greeting-sub" *ngIf="hasRole(['ClinicalTrialManager'])">Clinical Trial Manager — trial operations overview</div>
+      <div class="db-greeting-sub" *ngIf="hasRole(['Investigator'])">Investigator Console — your assigned trials</div>
+      <div class="db-greeting-sub" *ngIf="hasRole(['DataManager'])">Data Manager — platform overview</div>
+      <div class="db-greeting-sub" *ngIf="hasRole(['RegulatoryOfficer'])">Regulatory Officer — compliance overview</div>
+
+      <!-- KPI Cards -->
+      <div class="db-kpi-grid">
+        <div class="db-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager'])">
+          <div class="db-kpi-icon blue">👥</div>
+          <div><div class="db-kpi-label">Total Users</div><div class="db-kpi-value">{{ totalUsers }}</div><div class="db-kpi-sub">Staff across all roles</div></div>
+        </div>
+        <div class="db-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','DataManager','RegulatoryOfficer'])">
+          <div class="db-kpi-icon green">🧬</div>
+          <div><div class="db-kpi-label">Total Patients</div><div class="db-kpi-value">{{ totalPatients }}</div><div class="db-kpi-sub">Enrolled in trials</div></div>
+        </div>
+        <div class="db-kpi" *ngIf="hasRole(['Investigator'])">
+          <div class="db-kpi-icon green">🧬</div>
+          <div><div class="db-kpi-label">My Patients</div><div class="db-kpi-value">{{ myPatientCount }}</div><div class="db-kpi-sub">Enrolled under your trials</div></div>
+        </div>
+        <div class="db-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer'])">
+          <div class="db-kpi-icon amber">📋</div>
+          <div>
+            <div class="db-kpi-label">Active Protocols</div>
+            <div class="db-kpi-value">{{ activeProtocols }}</div>
+            <div class="db-kpi-sub" *ngIf="isInvestigator()">Assigned to you</div>
+            <div class="db-kpi-sub" *ngIf="!isInvestigator()">Ongoing clinical trials</div>
+          </div>
+        </div>
+        <div class="db-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator'])">
+          <div class="db-kpi-icon purple">📍</div>
+          <div>
+            <div class="db-kpi-label">Total Sites</div>
+            <div class="db-kpi-value">{{ totalSites }}</div>
+            <div class="db-kpi-sub" *ngIf="isInvestigator()">Assigned to you</div>
+            <div class="db-kpi-sub" *ngIf="!isInvestigator()">Registered trial sites</div>
+          </div>
+        </div>
+        <div class="db-kpi" *ngIf="hasRole(['Patient'])">
+          <div class="db-kpi-icon blue">📅</div>
+          <div><div class="db-kpi-label">Upcoming Visits</div><div class="db-kpi-value">{{ upcomingVisits }}</div><div class="db-kpi-sub">Scheduled visits</div></div>
+        </div>
+        <div class="db-kpi" *ngIf="hasRole(['Patient'])">
+          <div class="db-kpi-icon green">✅</div>
+          <div><div class="db-kpi-label">Completed Visits</div><div class="db-kpi-value">{{ completedVisits }}</div><div class="db-kpi-sub">Total attended</div></div>
+        </div>
       </div>
 
-      <!-- ── KPI CARDS ── -->
-      <div class="lt-kpi-grid">
-
-        <!-- Admin only: Total Staff -->
-        <div class="lt-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager'])">
-          <div class="lt-kpi-icon blue">👥</div>
-          <div>
-            <div class="lt-kpi-label">Total Staff</div>
-            <div class="lt-kpi-value">{{ totalUsers }}</div>
-          </div>
+      <!-- Investigator: no protocol assigned yet -->
+      <div *ngIf="isInvestigator() && !hasAssignedProtocols"
+        style="background:#fff;border:1px dashed #e5e7eb;border-radius:14px;padding:48px 24px;text-align:center;margin-bottom:16px;">
+        <div style="font-size:40px;margin-bottom:16px;">📋</div>
+        <div style="font-size:16px;font-weight:600;color:#1a1a2e;margin-bottom:8px;">No protocols assigned yet</div>
+        <div style="font-size:13px;color:#888;max-width:360px;margin:0 auto;">
+          You haven't been assigned to any protocol or site. Please contact your admin to get assigned before you can start working.
         </div>
-
-        <!-- All staff: Patients -->
-        <div class="lt-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer'])">
-          <div class="lt-kpi-icon green">🧬</div>
-          <div>
-            <div class="lt-kpi-label">Total Patients</div>
-            <div class="lt-kpi-value">{{ totalPatients }}</div>
-          </div>
-        </div>
-
-        <!-- Protocols -->
-        <div class="lt-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer'])">
-          <div class="lt-kpi-icon amber">📋</div>
-          <div>
-            <div class="lt-kpi-label">Active Protocols</div>
-            <div class="lt-kpi-value">{{ activeProtocols }}</div>
-          </div>
-        </div>
-
-        <!-- Sites -->
-        <div class="lt-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator'])">
-          <div class="lt-kpi-icon purple">📍</div>
-          <div>
-            <div class="lt-kpi-label">Total Sites</div>
-            <div class="lt-kpi-value">{{ totalSites }}</div>
-          </div>
-        </div>
-
-        <!-- Patient view: My visits -->
-        <div class="lt-kpi" *ngIf="hasRole(['Patient'])">
-          <div class="lt-kpi-icon blue">📅</div>
-          <div>
-            <div class="lt-kpi-label">Upcoming Visits</div>
-            <div class="lt-kpi-value">{{ upcomingVisits }}</div>
-          </div>
-        </div>
-
-        <div class="lt-kpi" *ngIf="hasRole(['Patient'])">
-          <div class="lt-kpi-icon green">✅</div>
-          <div>
-            <div class="lt-kpi-label">Completed Visits</div>
-            <div class="lt-kpi-value">{{ completedVisits }}</div>
-          </div>
-        </div>
-
       </div>
-      <!-- end KPI grid -->
 
-      <!-- ── TWO COLUMN CARDS (staff roles) ── -->
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;"
-           *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer'])">
+      <!-- Main two-column grid -->
+      <div class="db-main-grid"
+           *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer']) && (!isInvestigator() || hasAssignedProtocols)">
 
-        <!-- Protocols card -->
-        <div class="lt-card">
-          <div class="lt-card-header">
-            <div class="lt-card-title">Protocols</div>
-            <a class="lt-card-link" routerLink="/protocols">View all →</a>
-          </div>
-          <div style="padding: 6px 0;">
-            <div class="lt-list-row" *ngFor="let p of recentProtocols">
+        <!-- LEFT: Protocols + Sites -->
+        <div class="db-left">
+          <div class="db-card">
+            <div class="db-card-header">
+              <div class="db-card-title">Protocols</div>
+              <a class="db-card-link" routerLink="/protocols">View all →</a>
+            </div>
+            <div *ngFor="let p of recentProtocols" class="db-list-row">
               <div>
-                <div class="lt-list-row-name">{{ p.title }}</div>
-                <div class="lt-list-row-sub">
-                  <span>{{ p.phase }}</span>
-                  <span class="dot-sep">·</span>
-                  <span>{{ p.startDate | date:'dd MMM yyyy' }} — {{ p.endDate | date:'dd MMM yyyy' }}</span>
-                </div>
+                <div class="db-list-name">{{ p.title }}</div>
+                <div class="db-list-sub">{{ p.startDate | date:'dd MMM yyyy' }} — {{ p.endDate | date:'dd MMM yyyy' }}</div>
               </div>
-              <span class="lt-badge" [ngClass]="getProtocolBadge(p.status)">{{ p.status }}</span>
+              <span class="db-badge" [ngClass]="getProtocolBadge(p.status)">{{ p.status }}</span>
             </div>
-            <div class="lt-list-row" *ngIf="recentProtocols.length === 0">
-              <span style="color:var(--text-muted); font-size:13px;">No protocols found.</span>
-            </div>
+            <div class="db-empty" *ngIf="recentProtocols.length === 0">No protocols found.</div>
           </div>
-        </div>
 
-        <!-- Sites card -->
-        <div class="lt-card" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator'])">
-          <div class="lt-card-header">
-            <div class="lt-card-title">Sites</div>
-            <a class="lt-card-link" routerLink="/sites">View all →</a>
-          </div>
-          <div style="padding: 6px 0;">
-            <div class="lt-list-row" *ngFor="let s of recentSites">
+          <div class="db-card" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator'])">
+            <div class="db-card-header">
+              <div class="db-card-title">Sites</div>
+              <a class="db-card-link" routerLink="/sites">View all →</a>
+            </div>
+            <div *ngFor="let s of recentSites" class="db-list-row">
               <div>
-                <div class="lt-list-row-name">{{ s.name }}</div>
-                <div class="lt-list-row-sub">
-                  <span>📍</span><span>{{ s.location }}</span>
-                </div>
+                <div class="db-list-name">{{ s.name }}</div>
+                <div class="db-list-sub">📍 {{ s.location }}</div>
               </div>
-              <span class="lt-badge" [ngClass]="getSiteBadge(s.status)">{{ s.status }}</span>
+              <span class="db-badge" [ngClass]="getSiteBadge(s.status)">{{ s.status }}</span>
             </div>
-            <div class="lt-list-row" *ngIf="recentSites.length === 0">
-              <span style="color:var(--text-muted); font-size:13px;">No sites found.</span>
-            </div>
+            <div class="db-empty" *ngIf="recentSites.length === 0">No sites found.</div>
           </div>
         </div>
 
-      </div>
-      <!-- end two-col -->
+        <!-- RIGHT: Quick Actions -->
+        <div class="db-right">
+          <div class="db-card">
+            <div class="db-card-header">
+              <div class="db-card-title">Quick Actions</div>
+            </div>
 
-      <!-- ── Patient Dashboard ── -->
+            <!-- Admin actions -->
+            <a class="db-quick-action" routerLink="/users" *ngIf="hasRole(['Admin'])">
+              <div class="db-qa-left"><div class="db-qa-icon" style="background:#e8f0fe;">👤</div><div class="db-qa-label">Add new user</div></div>
+              <span class="db-qa-arrow">→</span>
+            </a>
+            <a class="db-quick-action" routerLink="/protocols" *ngIf="hasRole(['Admin','ClinicalTrialManager'])">
+              <div class="db-qa-left"><div class="db-qa-icon" style="background:#fef3e2;">📋</div><div class="db-qa-label">Create protocol</div></div>
+              <span class="db-qa-arrow">→</span>
+            </a>
+            <a class="db-quick-action" routerLink="/sites" *ngIf="hasRole(['Admin','ClinicalTrialManager'])">
+              <div class="db-qa-left"><div class="db-qa-icon" style="background:#f3e8fd;">📍</div><div class="db-qa-label">Register site</div></div>
+              <span class="db-qa-arrow">→</span>
+            </a>
+            <a class="db-quick-action" routerLink="/audit" *ngIf="hasRole(['Admin'])">
+              <div class="db-qa-left"><div class="db-qa-icon" style="background:#e6f4ea;">📊</div><div class="db-qa-label">View audit log</div></div>
+              <span class="db-qa-arrow">→</span>
+            </a>
+
+            <!-- Investigator actions -->
+            <a class="db-quick-action" routerLink="/patients" *ngIf="hasRole(['Investigator','ClinicalTrialManager'])">
+              <div class="db-qa-left"><div class="db-qa-icon" style="background:#fce8e6;">🧬</div><div class="db-qa-label">Enroll patient</div></div>
+              <span class="db-qa-arrow">→</span>
+            </a>
+            <a class="db-quick-action" routerLink="/visits" *ngIf="hasRole(['Investigator','ClinicalTrialManager'])">
+              <div class="db-qa-left"><div class="db-qa-icon" style="background:#e8f0fe;">📅</div><div class="db-qa-label">Schedule visit</div></div>
+              <span class="db-qa-arrow">→</span>
+            </a>
+
+            <!-- All roles -->
+            <a class="db-quick-action" routerLink="/notifications">
+              <div class="db-qa-left"><div class="db-qa-icon" style="background:#fef3e2;">🔔</div><div class="db-qa-label">Notifications</div></div>
+              <span class="db-qa-arrow">→</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Audit — full width, Admin only -->
+      <div class="db-card" *ngIf="hasRole(['Admin'])" style="margin-bottom:16px;">
+        <div class="db-card-header">
+          <div class="db-card-title">Recent Audit</div>
+          <a class="db-card-link" routerLink="/audit">View all →</a>
+        </div>
+        <div class="db-audit-grid">
+          <div *ngFor="let log of recentAuditLogs" class="db-audit-row">
+            <div class="db-audit-dot"
+              [class.green]="log.action==='CREATE'||log.action==='LOGIN'"
+              [class.amber]="log.action==='UPDATE'"
+              [class.red]="log.action==='DELETE'">
+            </div>
+            <div>
+              <div class="db-audit-msg">{{ log.details || (log.action + ' on ' + log.entityType) }}</div>
+              <div class="db-audit-time">{{ log.actionTime | date:'dd MMM yyyy, HH:mm' }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="db-empty" *ngIf="recentAuditLogs.length === 0">No recent activity.</div>
+      </div>
+
+      <!-- Patient Dashboard -->
       <div *ngIf="hasRole(['Patient'])">
-        <div class="lt-card">
-          <div class="lt-card-header">
-            <div class="lt-card-title">My Upcoming Visits</div>
-          </div>
-          <div class="lt-card-body">
-            <p style="color:var(--text-secondary); font-size:13px;">
-              Your next scheduled visits will appear here. Contact your investigator if you have questions.
-            </p>
-          </div>
+        <div class="db-card">
+          <div class="db-card-header"><div class="db-card-title">My Upcoming Visits</div></div>
+          <p style="color:#aaa;font-size:13px;padding:8px 0;">Your next scheduled visits will appear here. Contact your investigator if you have questions.</p>
         </div>
       </div>
 
     </div>
-    <!-- end lt-content -->
-
   </div>
 </div>

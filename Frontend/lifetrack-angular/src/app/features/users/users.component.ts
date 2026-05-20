@@ -156,6 +156,10 @@ export class UsersComponent implements OnInit {
       this.modalError = 'Name and email are required.';
       return;
     }
+    if (this.form.phone && !/^[0-9]{10}$/.test(this.form.phone)) {
+      this.modalError = 'Phone number must be exactly 10 digits (numbers only).';
+      return;
+    }
     if (!this.editMode && this.form.password.length < 8) {
       this.modalError = 'Password must be at least 8 characters.';
       return;
@@ -238,6 +242,7 @@ export class UsersComponent implements OnInit {
     setTimeout(() => {
       this.successMsg = '';
       this.errorMsg   = '';
+      this.cdr.detectChanges();
     }, 3000);
   }
 }
