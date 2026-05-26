@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // UserService.API / Repositories / Interfaces / INotificationRepository.cs
+// NO DELETE METHOD — Updated
 // ============================================================
 
 using LifeTrack.UserService.DTOs;
@@ -13,6 +14,6 @@ namespace LifeTrack.UserService.Repositories.Interfaces
         Task<NotificationDto> CreateAsync(CreateNotificationRequest req);
         Task<bool> MarkAsReadAsync(long id);
         Task<bool> MarkAllAsReadAsync(long userId);
-        Task<bool> DeleteAsync(long id);
+        // ❌ DELETE REMOVED
     }
 }

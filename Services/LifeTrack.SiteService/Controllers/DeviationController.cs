@@ -44,11 +44,13 @@ namespace LifeTrack.SiteService.Controllers
 
         // PATCH /api/deviations/{id}/status
         [HttpPatch("{id}/status")]
-        [Authorize(Roles = "Admin,RegulatoryOfficer")]
+        [Authorize(Roles = "ClinicalTrialManager,RegulatoryOfficer")]
         public async Task<IActionResult> UpdateStatus(
             long id, [FromBody] UpdateDeviationStatusRequest req)
         {
-            var result = await _service.UpdateStatusAsync(id, req.Status);
+            var updaterRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+
+            var result = await _service.UpdateStatusAsync(id, req.Status, updaterRole);
             return result.Success ? Ok(result) : NotFound(result);
         }
 

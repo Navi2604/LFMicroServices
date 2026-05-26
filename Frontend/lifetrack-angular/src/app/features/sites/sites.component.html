@@ -64,7 +64,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let s of filtered">
+            <tr *ngFor="let s of paginatedFiltered">
               <td class="cell-id">SITE-{{ s.siteID }}</td>
               <td style="font-weight:500;">{{ s.name }}</td>
               <td class="cell-muted">📍 {{ s.location }}</td>
@@ -81,6 +81,27 @@
             </tr>
           </tbody>
         </table>
+
+      <!-- ✅ Pagination -->
+      <div *ngIf="!isLoading && totalPages > 1" style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding:16px;background:#f9fafb;border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <label>Per page:</label>
+          <select [(ngModel)]="pageSize" (change)="changePageSize(pageSize)" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:13px;">
+            <option *ngFor="let size of itemsPerPageOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+        <div style="font-size:13px;color:#666;font-weight:500;">
+          Page {{ currentPage }} of {{ totalPages }} · {{ totalItems }} total
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;gap:4px;">
+            <button *ngFor="let p of getPaginationButtons()" (click)="goToPage(p)" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:500;" [style.background]="p === currentPage ? '#1a3a8f' : '#fff'" [style.color]="p === currentPage ? '#fff' : '#555'">{{ p }}</button>
+          </div>
+          <input type="number" [(ngModel)]="jumpToPage" (keyup.enter)="goToPage(jumpToPage)" placeholder="Go to" style="width:60px;padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:12px;">
+          <button (click)="prevPage()" [disabled]="currentPage === 1" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">← Prev</button>
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">Next →</button>
+        </div>
+      </div>
       </div>
     </div>
   </div>
@@ -124,7 +145,15 @@
           </div>
           <div class="sv-info-cell">
             <div class="sv-info-lbl">Location</div>
-            <div class="sv-info-val">{{ viewSite?.location }}</div>
+            <div class="sv-info-val">{{ viewSite?.location || '—' }}</div>
+          </div>
+          <div class="sv-info-cell">
+            <div class="sv-info-lbl">Email</div>
+            <div class="sv-info-val">{{ $any(viewSite)?.email || '—' }}</div>
+          </div>
+          <div class="sv-info-cell">
+            <div class="sv-info-lbl">Contact</div>
+            <div class="sv-info-val">{{ $any(viewSite)?.contact || '—' }}</div>
           </div>
           <div class="sv-info-cell">
             <div class="sv-info-lbl">Status</div>
@@ -190,6 +219,16 @@
         <input class="lt-form-control" [(ngModel)]="createForm.location" placeholder="City, State" />
       </div>
     </div>
+    <div class="lt-form-row">
+      <div class="lt-form-group">
+        <label class="lt-form-label">Email</label>
+        <input class="lt-form-control" type="email" [(ngModel)]="createForm.email" placeholder="site@hospital.com" />
+      </div>
+      <div class="lt-form-group">
+        <label class="lt-form-label">Contact (10 digits)</label>
+        <input class="lt-form-control" type="text" [(ngModel)]="createForm.contact" placeholder="9876543210" maxlength="10" pattern="[0-9]{10}" (keypress)="onlyNumbers($event)" (paste)="onPaste($event)" />
+      </div>
+    </div>
     <div class="lt-form-group">
       <label class="lt-form-label">Status</label>
       <select class="lt-form-control" [(ngModel)]="createForm.status">
@@ -220,6 +259,16 @@
         <input class="lt-form-control" [(ngModel)]="editForm.location" />
       </div>
     </div>
+    <div class="lt-form-row">
+      <div class="lt-form-group">
+        <label class="lt-form-label">Email</label>
+        <input class="lt-form-control" type="email" [(ngModel)]="editForm.email" placeholder="site@hospital.com" />
+      </div>
+      <div class="lt-form-group">
+        <label class="lt-form-label">Contact (10 digits)</label>
+        <input class="lt-form-control" type="text" [(ngModel)]="editForm.contact" placeholder="9876543210" maxlength="10" pattern="[0-9]{10}" (keypress)="onlyNumbers($event)" (paste)="onPaste($event)" />
+      </div>
+    </div>
     <div class="lt-form-group">
       <label class="lt-form-label">Status</label>
       <select class="lt-form-control" [(ngModel)]="editForm.status">
@@ -227,13 +276,9 @@
         <option>Inactive</option>
       </select>
     </div>
-    <div class="lt-modal-footer" style="justify-content:space-between;">
-      <!-- Delete on left — Admin only -->
-      <button class="lt-btn lt-btn-danger" *ngIf="canEdit" (click)="deleteSite()">Delete site</button>
-      <div style="display:flex;gap:8px;">
-        <button class="lt-btn lt-btn-ghost" (click)="showEdit=false">Cancel</button>
-        <button class="lt-btn lt-btn-primary" (click)="saveEdit()">Save changes</button>
-      </div>
+    <div class="lt-modal-footer">
+      <button class="lt-btn lt-btn-ghost" (click)="showEdit=false">Cancel</button>
+      <button class="lt-btn lt-btn-primary" (click)="saveEdit()">Save changes</button>
     </div>
   </div>
 </div>

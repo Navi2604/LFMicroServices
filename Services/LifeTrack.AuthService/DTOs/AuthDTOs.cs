@@ -30,6 +30,7 @@ namespace LifeTrack.AuthService.DTOs
     public class RegisterPatientRequest
     {
         [Required(ErrorMessage = "Name is required.")]
+        [MinLength(2, ErrorMessage = "Name must be at least 2 characters.")]
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
 
@@ -40,7 +41,9 @@ namespace LifeTrack.AuthService.DTOs
         [Required(ErrorMessage = "Date of birth is required.")]
         public DateTime DOB { get; set; }
 
-        [MaxLength(200)]
+        [Required(ErrorMessage = "Contact number is required.")]
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "Contact must be exactly 10 digits.")]
+        [MaxLength(10)]
         public string ContactInfo { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Password is required.")]
@@ -51,6 +54,7 @@ namespace LifeTrack.AuthService.DTOs
     public class CreateStaffRequest
     {
         [Required(ErrorMessage = "Name is required.")]
+        [MinLength(2, ErrorMessage = "Name must be at least 2 characters.")]
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
 
@@ -58,7 +62,8 @@ namespace LifeTrack.AuthService.DTOs
         [EmailAddress(ErrorMessage = "Invalid email format.")]
         public string Email { get; set; } = string.Empty;
 
-        [MaxLength(20)]
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone must be exactly 10 digits.")]
+        [MaxLength(10)]
         public string Phone { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Role is required.")]

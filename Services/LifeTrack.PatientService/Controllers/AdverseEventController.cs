@@ -35,11 +35,14 @@ namespace LifeTrack.PatientService.Controllers
 
         // PATCH /api/adverse-events/{id}/status
         [HttpPatch("{id}/status")]
-        [Authorize(Roles = "Admin,Investigator,RegulatoryOfficer")]
+        [Authorize(Roles = "ClinicalTrialManager,RegulatoryOfficer")]
         public async Task<IActionResult> UpdateStatus(
             long id, [FromBody] UpdateAdverseEventStatusRequest req)
         {
-            var result = await _service.UpdateStatusAsync(id, req.Status);
+            // Read the caller's role from their JWT token
+            var updaterRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+
+            var result = await _service.UpdateStatusAsync(id, req.Status, updaterRole);
             return result.Success ? Ok(result) : NotFound(result);
         }
 

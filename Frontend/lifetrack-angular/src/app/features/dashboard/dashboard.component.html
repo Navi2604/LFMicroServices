@@ -1,229 +1,407 @@
 <!-- dashboard.component.html -->
 <style>
-.db-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px;}
-.db-kpi{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px 20px;display:flex;align-items:flex-start;gap:14px;}
-.db-kpi-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.db-kpi-icon.blue{background:#e8f0fe;} .db-kpi-icon.green{background:#e6f4ea;} .db-kpi-icon.amber{background:#fef3e2;} .db-kpi-icon.purple{background:#f3e8fd;}
-.db-kpi-value{font-size:28px;font-weight:700;color:#1a1a2e;line-height:1.1;}
-.db-kpi-label{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;}
-.db-kpi-sub{font-size:11px;color:#aaa;margin-top:3px;}
-.db-main-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;}
-.db-left{display:flex;flex-direction:column;gap:16px;}
-.db-right{display:flex;flex-direction:column;gap:16px;}
-.db-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px 20px;}
-.db-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.db-card-title{font-size:15px;font-weight:600;color:#1a1a2e;}
-.db-card-link{font-size:12px;color:#1a3a8f;text-decoration:none;font-weight:500;}
-.db-card-link:hover{text-decoration:underline;}
-.db-list-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f8;}
-.db-list-row:last-child{border-bottom:none;}
-.db-list-name{font-size:13px;font-weight:500;color:#1a1a2e;}
-.db-list-sub{font-size:11px;color:#aaa;margin-top:2px;}
-.db-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
-.db-badge-green{background:#e6f4ea;color:#1e7e34;} .db-badge-amber{background:#fef3e2;color:#b45309;}
-.db-badge-blue{background:#e8f0fe;color:#1a56db;} .db-badge-gray{background:#f3f4f6;color:#6b7280;} .db-badge-red{background:#fce8e6;color:#c0392b;}
-.db-quick-action{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:1px solid #e5e7eb;border-radius:10px;cursor:pointer;margin-bottom:8px;transition:background 0.12s;text-decoration:none;}
-.db-quick-action:hover{background:#f7f8fc;border-color:#c7d2fe;} .db-quick-action:last-child{margin-bottom:0;}
-.db-qa-left{display:flex;align-items:center;gap:10px;}
-.db-qa-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
-.db-qa-label{font-size:13px;font-weight:500;color:#1a1a2e;}
-.db-qa-arrow{font-size:14px;color:#aaa;}
-.db-audit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:2px;}
-.db-audit-row{display:flex;align-items:flex-start;gap:10px;padding:10px 8px;border-bottom:1px solid #f5f5f8;}
-.db-audit-dot{width:8px;height:8px;border-radius:50%;background:#1a3a8f;margin-top:5px;flex-shrink:0;}
-.db-audit-dot.green{background:#22c55e;} .db-audit-dot.amber{background:#f59e0b;} .db-audit-dot.red{background:#ef4444;}
-.db-audit-msg{font-size:12px;color:#444;line-height:1.4;}
-.db-audit-time{font-size:11px;color:#aaa;margin-top:2px;}
-.db-greeting{font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:2px;}
-.db-greeting-sub{font-size:13px;color:#888;margin-bottom:20px;}
-.db-empty{font-size:13px;color:#aaa;padding:16px 0;text-align:center;}
+/* ── Layout ─────────────────────────────────────────────── */
+.db-greeting      { font-size: 22px; font-weight: 700; color: #1a1a2e; margin-bottom: 2px; }
+.db-greeting-sub  { font-size: 13px; color: #888; margin-bottom: 24px; }
+
+/* ── KPI bar (top row) ──────────────────────────────────── */
+.db-kpi-grid      { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.db-kpi           { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px; }
+.db-kpi-icon      { width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.db-kpi-icon.blue   { background: #e8f0fe; }
+.db-kpi-icon.green  { background: #e6f4ea; }
+.db-kpi-icon.amber  { background: #fef3e2; }
+.db-kpi-icon.purple { background: #f3e8fd; }
+.db-kpi-icon.teal   { background: #e0f7f4; }
+.db-kpi-value     { font-size: 28px; font-weight: 700; color: #1a1a2e; line-height: 1.1; }
+.db-kpi-label     { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+.db-kpi-sub       { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+/* ── Stat cards grid (replaces protocol/sites/audit lists) ── */
+.db-stats-section { margin-bottom: 24px; }
+.db-section-title { font-size: 14px; font-weight: 600; color: #1a1a2e; margin-bottom: 12px; letter-spacing: 0.01em; }
+.db-stat-grid     { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+
+.db-stat-card     { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 20px; display: flex; align-items: center; gap: 16px; transition: box-shadow 0.15s; }
+.db-stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+
+.db-stat-icon     { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.db-stat-icon.blue   { background: #e8f0fe; }
+.db-stat-icon.green  { background: #e6f4ea; }
+.db-stat-icon.amber  { background: #fef3e2; }
+.db-stat-icon.purple { background: #f3e8fd; }
+.db-stat-icon.red    { background: #fce8e6; }
+.db-stat-icon.teal   { background: #e0f7f4; }
+
+.db-stat-body     { flex: 1; min-width: 0; }
+.db-stat-label    { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.db-stat-value    { font-size: 26px; font-weight: 700; color: #1a1a2e; line-height: 1; margin-bottom: 4px; }
+.db-stat-sub      { font-size: 12px; color: #aaa; }
+
+/* loading shimmer */
+.db-shimmer       { display: inline-block; width: 48px; height: 26px; border-radius: 6px; background: linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* ── Split stat (shows X / Y) ───────────────────────────── */
+.db-stat-split    { display: flex; align-items: baseline; gap: 4px; }
+.db-stat-split-main  { font-size: 26px; font-weight: 700; color: #1a1a2e; }
+.db-stat-split-slash { font-size: 16px; color: #ccc; }
+.db-stat-split-total { font-size: 16px; font-weight: 500; color: #aaa; }
+
+/* ── No assignments notice ──────────────────────────────── */
+.db-empty-state   { background: #fff; border: 1px dashed #e5e7eb; border-radius: 14px; padding: 48px 24px; text-align: center; margin-bottom: 16px; }
 </style>
 
 <div class="lt-page">
   <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
   <div class="lt-main">
+
+    <!-- Top bar -->
     <div class="lt-topbar">
       <div class="lt-breadcrumb">
         <span class="current">LifeTrack</span><span class="sep">/</span><span class="current">Dashboard</span>
       </div>
       <div class="lt-topbar-right">
-        <button class="lt-notif-btn" routerLink="/notifications">🔔<span class="dot" *ngIf="unreadCount > 0"></span></button>
+        <button class="lt-notif-btn" routerLink="/notifications">
+          🔔<span class="dot" *ngIf="unreadCount > 0"></span>
+        </button>
       </div>
     </div>
 
     <div class="lt-content">
 
       <!-- Greeting -->
-      <div class="db-greeting">Good day, {{ userName }} 👋</div>
+      <div class="db-greeting">{{ greeting }}, {{ userName }} 👋</div>
       <div class="db-greeting-sub" *ngIf="hasRole(['Admin'])">Admin Console — full platform overview</div>
-      <div class="db-greeting-sub" *ngIf="hasRole(['ClinicalTrialManager'])">Clinical Trial Manager — trial operations overview</div>
+      <div class="db-greeting-sub" *ngIf="hasRole(['ClinicalTrialManager'])">Clinical Trial Manager — trial operations</div>
       <div class="db-greeting-sub" *ngIf="hasRole(['Investigator'])">Investigator Console — your assigned trials</div>
       <div class="db-greeting-sub" *ngIf="hasRole(['DataManager'])">Data Manager — platform overview</div>
       <div class="db-greeting-sub" *ngIf="hasRole(['RegulatoryOfficer'])">Regulatory Officer — compliance overview</div>
 
-      <!-- KPI Cards -->
+      <!-- ── Top KPI bar ──────────────────────────────────────── -->
       <div class="db-kpi-grid">
+
         <div class="db-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager'])">
           <div class="db-kpi-icon blue">👥</div>
-          <div><div class="db-kpi-label">Total Users</div><div class="db-kpi-value">{{ totalUsers }}</div><div class="db-kpi-sub">Staff across all roles</div></div>
+          <div>
+            <div class="db-kpi-label">Total Users</div>
+            <div class="db-kpi-value">
+              <span *ngIf="!loadingUsers">{{ totalUsers }}</span>
+              <span *ngIf="loadingUsers" class="db-shimmer"></span>
+            </div>
+            <div class="db-kpi-sub">Staff accounts</div>
+          </div>
         </div>
+
         <div class="db-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','DataManager','RegulatoryOfficer'])">
           <div class="db-kpi-icon green">🧬</div>
-          <div><div class="db-kpi-label">Total Patients</div><div class="db-kpi-value">{{ totalPatients }}</div><div class="db-kpi-sub">Enrolled in trials</div></div>
+          <div>
+            <div class="db-kpi-label">Total Patients</div>
+            <div class="db-kpi-value">
+              <span *ngIf="!loadingPatients">{{ totalPatients }}</span>
+              <span *ngIf="loadingPatients" class="db-shimmer"></span>
+            </div>
+            <div class="db-kpi-sub">Registered in system</div>
+          </div>
         </div>
-        <div class="db-kpi" *ngIf="hasRole(['Investigator'])">
+
+        <div class="db-kpi" *ngIf="isInvestigator()">
           <div class="db-kpi-icon green">🧬</div>
-          <div><div class="db-kpi-label">My Patients</div><div class="db-kpi-value">{{ myPatientCount }}</div><div class="db-kpi-sub">Enrolled under your trials</div></div>
+          <div>
+            <div class="db-kpi-label">My Patients</div>
+            <div class="db-kpi-value">{{ myPatientCount }}</div>
+            <div class="db-kpi-sub">Enrolled under your trials</div>
+          </div>
         </div>
+
         <div class="db-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer'])">
           <div class="db-kpi-icon amber">📋</div>
           <div>
             <div class="db-kpi-label">Active Protocols</div>
-            <div class="db-kpi-value">{{ activeProtocols }}</div>
-            <div class="db-kpi-sub" *ngIf="isInvestigator()">Assigned to you</div>
+            <div class="db-kpi-value">
+              <span *ngIf="!loadingProtocols">{{ activeProtocols }}</span>
+              <span *ngIf="loadingProtocols" class="db-shimmer"></span>
+            </div>
             <div class="db-kpi-sub" *ngIf="!isInvestigator()">Ongoing clinical trials</div>
+            <div class="db-kpi-sub" *ngIf="isInvestigator()">Assigned to you</div>
           </div>
         </div>
+
         <div class="db-kpi" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator'])">
           <div class="db-kpi-icon purple">📍</div>
           <div>
             <div class="db-kpi-label">Total Sites</div>
-            <div class="db-kpi-value">{{ totalSites }}</div>
-            <div class="db-kpi-sub" *ngIf="isInvestigator()">Assigned to you</div>
+            <div class="db-kpi-value">
+              <span *ngIf="!loadingSites">{{ totalSites }}</span>
+              <span *ngIf="loadingSites" class="db-shimmer"></span>
+            </div>
             <div class="db-kpi-sub" *ngIf="!isInvestigator()">Registered trial sites</div>
+            <div class="db-kpi-sub" *ngIf="isInvestigator()">Assigned to you</div>
           </div>
         </div>
-        <div class="db-kpi" *ngIf="hasRole(['Patient'])">
-          <div class="db-kpi-icon blue">📅</div>
-          <div><div class="db-kpi-label">Upcoming Visits</div><div class="db-kpi-value">{{ upcomingVisits }}</div><div class="db-kpi-sub">Scheduled visits</div></div>
-        </div>
-        <div class="db-kpi" *ngIf="hasRole(['Patient'])">
-          <div class="db-kpi-icon green">✅</div>
-          <div><div class="db-kpi-label">Completed Visits</div><div class="db-kpi-value">{{ completedVisits }}</div><div class="db-kpi-sub">Total attended</div></div>
-        </div>
+
       </div>
 
-      <!-- Investigator: no protocol assigned yet -->
+      <!-- ── No assignments (Investigator) ───────────────────── -->
+      <!-- Investigator waiting state — shown when no SiteProtocol assignment exists -->
       <div *ngIf="isInvestigator() && !hasAssignedProtocols"
-        style="background:#fff;border:1px dashed #e5e7eb;border-radius:14px;padding:48px 24px;text-align:center;margin-bottom:16px;">
-        <div style="font-size:40px;margin-bottom:16px;">📋</div>
-        <div style="font-size:16px;font-weight:600;color:#1a1a2e;margin-bottom:8px;">No protocols assigned yet</div>
-        <div style="font-size:13px;color:#888;max-width:360px;margin:0 auto;">
-          You haven't been assigned to any protocol or site. Please contact your admin to get assigned before you can start working.
+           style="background:#fff;border:1.5px dashed #c7d2fe;border-radius:16px;
+                  padding:52px 32px;text-align:center;margin-bottom:24px;">
+        <div style="font-size:48px;margin-bottom:20px;">⏳</div>
+        <div style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:10px;">
+          Waiting for Protocol Assignment
+        </div>
+        <div style="font-size:14px;color:#666;max-width:420px;margin:0 auto 20px;line-height:1.7;">
+          Your account is currently <strong>inactive</strong> because you haven't been assigned
+          to any protocol site yet. Once an admin assigns you to a site-protocol, your account
+          will be activated automatically and you can begin your work.
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:10px;
+                    background:#f0f4ff;border:1px solid #c7d2fe;border-radius:10px;
+                    padding:12px 20px;font-size:13px;color:#1a3a8f;">
+          <span style="font-size:16px;">📩</span>
+          Please ask your admin to assign a protocol to you. Until then, please wait.
         </div>
       </div>
 
-      <!-- Main two-column grid -->
-      <div class="db-main-grid"
-           *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer']) && (!isInvestigator() || hasAssignedProtocols)">
+      <!-- ── Stat cards — Admin ───────────────────────────────── -->
+      <div class="db-stats-section"
+           *ngIf="hasRole(['Admin']) && (!isInvestigator() || hasAssignedProtocols)">
 
-        <!-- LEFT: Protocols + Sites -->
-        <div class="db-left">
-          <div class="db-card">
-            <div class="db-card-header">
-              <div class="db-card-title">Protocols</div>
-              <a class="db-card-link" routerLink="/protocols">View all →</a>
-            </div>
-            <div *ngFor="let p of recentProtocols" class="db-list-row">
-              <div>
-                <div class="db-list-name">{{ p.title }}</div>
-                <div class="db-list-sub">{{ p.startDate | date:'dd MMM yyyy' }} — {{ p.endDate | date:'dd MMM yyyy' }}</div>
+        <div class="db-section-title">Platform Overview</div>
+        <div class="db-stat-grid">
+
+          <!-- Active Investigators -->
+          <div class="db-stat-card">
+            <div class="db-stat-icon blue">🔬</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Active Investigators</div>
+              <div class="db-stat-split">
+                <span class="db-stat-split-main">{{ activeInvestigators }}</span>
+                <span class="db-stat-split-slash">/</span>
+                <span class="db-stat-split-total">{{ totalUsers }}</span>
               </div>
-              <span class="db-badge" [ngClass]="getProtocolBadge(p.status)">{{ p.status }}</span>
+              <div class="db-stat-sub">of total staff</div>
             </div>
-            <div class="db-empty" *ngIf="recentProtocols.length === 0">No protocols found.</div>
           </div>
 
-          <div class="db-card" *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator'])">
-            <div class="db-card-header">
-              <div class="db-card-title">Sites</div>
-              <a class="db-card-link" routerLink="/sites">View all →</a>
-            </div>
-            <div *ngFor="let s of recentSites" class="db-list-row">
-              <div>
-                <div class="db-list-name">{{ s.name }}</div>
-                <div class="db-list-sub">📍 {{ s.location }}</div>
+          <!-- Protocol breakdown -->
+          <div class="db-stat-card">
+            <div class="db-stat-icon amber">📋</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Protocol Status</div>
+              <div class="db-stat-value">
+                <span *ngIf="!loadingProtocols">{{ activeProtocols }}</span>
+                <span *ngIf="loadingProtocols" class="db-shimmer"></span>
               </div>
-              <span class="db-badge" [ngClass]="getSiteBadge(s.status)">{{ s.status }}</span>
+              <div class="db-stat-sub">
+                {{ upcomingProtocols }} upcoming · {{ completedProtocols }} completed
+              </div>
             </div>
-            <div class="db-empty" *ngIf="recentSites.length === 0">No sites found.</div>
           </div>
-        </div>
 
-        <!-- RIGHT: Quick Actions -->
-        <div class="db-right">
-          <div class="db-card">
-            <div class="db-card-header">
-              <div class="db-card-title">Quick Actions</div>
+          <!-- Site activity -->
+          <div class="db-stat-card">
+            <div class="db-stat-icon purple">📍</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Site Activity</div>
+              <div class="db-stat-split">
+                <span class="db-stat-split-main">{{ activeSites }}</span>
+                <span class="db-stat-split-slash">/</span>
+                <span class="db-stat-split-total">{{ totalSites }}</span>
+              </div>
+              <div class="db-stat-sub">active of total sites</div>
             </div>
-
-            <!-- Admin actions -->
-            <a class="db-quick-action" routerLink="/users" *ngIf="hasRole(['Admin'])">
-              <div class="db-qa-left"><div class="db-qa-icon" style="background:#e8f0fe;">👤</div><div class="db-qa-label">Add new user</div></div>
-              <span class="db-qa-arrow">→</span>
-            </a>
-            <a class="db-quick-action" routerLink="/protocols" *ngIf="hasRole(['Admin','ClinicalTrialManager'])">
-              <div class="db-qa-left"><div class="db-qa-icon" style="background:#fef3e2;">📋</div><div class="db-qa-label">Create protocol</div></div>
-              <span class="db-qa-arrow">→</span>
-            </a>
-            <a class="db-quick-action" routerLink="/sites" *ngIf="hasRole(['Admin','ClinicalTrialManager'])">
-              <div class="db-qa-left"><div class="db-qa-icon" style="background:#f3e8fd;">📍</div><div class="db-qa-label">Register site</div></div>
-              <span class="db-qa-arrow">→</span>
-            </a>
-            <a class="db-quick-action" routerLink="/audit" *ngIf="hasRole(['Admin'])">
-              <div class="db-qa-left"><div class="db-qa-icon" style="background:#e6f4ea;">📊</div><div class="db-qa-label">View audit log</div></div>
-              <span class="db-qa-arrow">→</span>
-            </a>
-
-            <!-- Investigator actions -->
-            <a class="db-quick-action" routerLink="/patients" *ngIf="hasRole(['Investigator','ClinicalTrialManager'])">
-              <div class="db-qa-left"><div class="db-qa-icon" style="background:#fce8e6;">🧬</div><div class="db-qa-label">Enroll patient</div></div>
-              <span class="db-qa-arrow">→</span>
-            </a>
-            <a class="db-quick-action" routerLink="/visits" *ngIf="hasRole(['Investigator','ClinicalTrialManager'])">
-              <div class="db-qa-left"><div class="db-qa-icon" style="background:#e8f0fe;">📅</div><div class="db-qa-label">Schedule visit</div></div>
-              <span class="db-qa-arrow">→</span>
-            </a>
-
-            <!-- All roles -->
-            <a class="db-quick-action" routerLink="/notifications">
-              <div class="db-qa-left"><div class="db-qa-icon" style="background:#fef3e2;">🔔</div><div class="db-qa-label">Notifications</div></div>
-              <span class="db-qa-arrow">→</span>
-            </a>
           </div>
+
+          <!-- Enrollments -->
+          <div class="db-stat-card">
+            <div class="db-stat-icon green">📝</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Enrollments</div>
+              <div class="db-stat-split">
+                <span class="db-stat-split-main">
+                  <span *ngIf="!loadingEnrollments">{{ activeEnrollments }}</span>
+                  <span *ngIf="loadingEnrollments" class="db-shimmer"></span>
+                </span>
+                <span class="db-stat-split-slash">/</span>
+                <span class="db-stat-split-total">{{ totalEnrollments }}</span>
+              </div>
+              <div class="db-stat-sub">active of total enrollments</div>
+            </div>
+          </div>
+
+          <!-- Patient coverage -->
+          <div class="db-stat-card">
+            <div class="db-stat-icon teal">🧬</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Patient Coverage</div>
+              <div class="db-stat-value">
+                <span *ngIf="!loadingPatients">{{ totalPatients }}</span>
+                <span *ngIf="loadingPatients" class="db-shimmer"></span>
+              </div>
+              <div class="db-stat-sub">patients registered</div>
+            </div>
+          </div>
+
+          <!-- Quick link: Audit -->
+          <div class="db-stat-card" style="cursor:pointer;" routerLink="/audit">
+            <div class="db-stat-icon red">🔍</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Audit Trail</div>
+              <div class="db-stat-value" style="font-size:15px;font-weight:600;color:#1a3a8f;margin-top:4px;">View logs →</div>
+              <div class="db-stat-sub">Full activity history</div>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      <!-- Recent Audit — full width, Admin only -->
-      <div class="db-card" *ngIf="hasRole(['Admin'])" style="margin-bottom:16px;">
-        <div class="db-card-header">
-          <div class="db-card-title">Recent Audit</div>
-          <a class="db-card-link" routerLink="/audit">View all →</a>
-        </div>
-        <div class="db-audit-grid">
-          <div *ngFor="let log of recentAuditLogs" class="db-audit-row">
-            <div class="db-audit-dot"
-              [class.green]="log.action==='CREATE'||log.action==='LOGIN'"
-              [class.amber]="log.action==='UPDATE'"
-              [class.red]="log.action==='DELETE'">
-            </div>
-            <div>
-              <div class="db-audit-msg">{{ log.details || (log.action + ' on ' + log.entityType) }}</div>
-              <div class="db-audit-time">{{ log.actionTime | date:'dd MMM yyyy, HH:mm' }}</div>
+      <!-- ── Stat cards — Clinical Trial Manager ──────────────── -->
+      <div class="db-stats-section"
+           *ngIf="hasRole(['ClinicalTrialManager'])">
+        <div class="db-section-title">Trial Operations</div>
+        <div class="db-stat-grid">
+
+          <div class="db-stat-card">
+            <div class="db-stat-icon amber">📋</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Protocol Status</div>
+              <div class="db-stat-value">
+                <span *ngIf="!loadingProtocols">{{ activeProtocols }}</span>
+                <span *ngIf="loadingProtocols" class="db-shimmer"></span>
+              </div>
+              <div class="db-stat-sub">{{ upcomingProtocols }} upcoming · {{ completedProtocols }} completed</div>
             </div>
           </div>
+
+          <div class="db-stat-card">
+            <div class="db-stat-icon purple">📍</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Site Activity</div>
+              <div class="db-stat-split">
+                <span class="db-stat-split-main">{{ activeSites }}</span>
+                <span class="db-stat-split-slash">/</span>
+                <span class="db-stat-split-total">{{ totalSites }}</span>
+              </div>
+              <div class="db-stat-sub">active of total</div>
+            </div>
+          </div>
+
+          <div class="db-stat-card">
+            <div class="db-stat-icon green">📝</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Enrollments</div>
+              <div class="db-stat-split">
+                <span class="db-stat-split-main">
+                  <span *ngIf="!loadingEnrollments">{{ activeEnrollments }}</span>
+                  <span *ngIf="loadingEnrollments" class="db-shimmer"></span>
+                </span>
+                <span class="db-stat-split-slash">/</span>
+                <span class="db-stat-split-total">{{ totalEnrollments }}</span>
+              </div>
+              <div class="db-stat-sub">active of total</div>
+            </div>
+          </div>
+
+          <div class="db-stat-card">
+            <div class="db-stat-icon blue">🔬</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Active Investigators</div>
+              <div class="db-stat-value">{{ activeInvestigators }}</div>
+              <div class="db-stat-sub">of {{ totalUsers }} total staff</div>
+            </div>
+          </div>
+
         </div>
-        <div class="db-empty" *ngIf="recentAuditLogs.length === 0">No recent activity.</div>
       </div>
 
-      <!-- Patient Dashboard -->
-      <div *ngIf="hasRole(['Patient'])">
-        <div class="db-card">
-          <div class="db-card-header"><div class="db-card-title">My Upcoming Visits</div></div>
-          <p style="color:#aaa;font-size:13px;padding:8px 0;">Your next scheduled visits will appear here. Contact your investigator if you have questions.</p>
+      <!-- ── Stat cards — Investigator ────────────────────────── -->
+      <div class="db-stats-section"
+           *ngIf="isInvestigator() && hasAssignedProtocols">
+        <div class="db-section-title">Your Trial Summary</div>
+        <div class="db-stat-grid">
+
+          <div class="db-stat-card">
+            <div class="db-stat-icon amber">📋</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Protocols</div>
+              <div class="db-stat-value">{{ activeProtocols }}</div>
+              <div class="db-stat-sub">{{ upcomingProtocols }} upcoming · {{ completedProtocols }} completed</div>
+            </div>
+          </div>
+
+          <div class="db-stat-card">
+            <div class="db-stat-icon purple">📍</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">My Sites</div>
+              <div class="db-stat-split">
+                <span class="db-stat-split-main">{{ activeSites }}</span>
+                <span class="db-stat-split-slash">/</span>
+                <span class="db-stat-split-total">{{ totalSites }}</span>
+              </div>
+              <div class="db-stat-sub">active of assigned</div>
+            </div>
+          </div>
+
+          <div class="db-stat-card">
+            <div class="db-stat-icon green">📝</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Enrollments</div>
+              <div class="db-stat-split">
+                <span class="db-stat-split-main">{{ activeEnrollments }}</span>
+                <span class="db-stat-split-slash">/</span>
+                <span class="db-stat-split-total">{{ totalEnrollments }}</span>
+              </div>
+              <div class="db-stat-sub">active of total</div>
+            </div>
+          </div>
+
+          <div class="db-stat-card">
+            <div class="db-stat-icon teal">🧬</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">My Patients</div>
+              <div class="db-stat-value">{{ myPatientCount }}</div>
+              <div class="db-stat-sub">enrolled under your protocols</div>
+            </div>
+          </div>
+
         </div>
       </div>
 
-    </div>
-  </div>
-</div>
+      <!-- ── Stat cards — DataManager / RegulatoryOfficer ─────── -->
+      <div class="db-stats-section"
+           *ngIf="hasRole(['DataManager','RegulatoryOfficer'])">
+        <div class="db-section-title">Platform Summary</div>
+        <div class="db-stat-grid">
+
+          <div class="db-stat-card">
+            <div class="db-stat-icon amber">📋</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Protocols</div>
+              <div class="db-stat-value">
+                <span *ngIf="!loadingProtocols">{{ activeProtocols }}</span>
+                <span *ngIf="loadingProtocols" class="db-shimmer"></span>
+              </div>
+              <div class="db-stat-sub">{{ upcomingProtocols }} upcoming · {{ completedProtocols }} completed</div>
+            </div>
+          </div>
+
+          <div class="db-stat-card">
+            <div class="db-stat-icon green">🧬</div>
+            <div class="db-stat-body">
+              <div class="db-stat-label">Patients</div>
+              <div class="db-stat-value">
+                <span *ngIf="!loadingPatients">{{ totalPatients }}</span>
+                <span *ngIf="loadingPatients" class="db-shimmer"></span>
+              </div>
+              <div class="db-stat-sub">registered in system</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- lt-content -->
+  </div><!-- lt-main -->
+</div><!-- lt-page -->

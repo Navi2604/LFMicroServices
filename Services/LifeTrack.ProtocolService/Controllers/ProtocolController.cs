@@ -1,5 +1,7 @@
 ﻿// ============================================================
 // ProtocolService.API / Controllers / ProtocolController.cs
+// ADDED: PATCH /api/protocols/{id}/unarchive
+// FIXED: Archive allowed from any non-Archived status
 // ============================================================
 
 using LifeTrack.ProtocolService.DTOs;
@@ -18,7 +20,7 @@ namespace LifeTrack.ProtocolService.Controllers
 
         public ProtocolController(IProtocolService service) => _service = service;
 
-        // GET /api/protocols?title=&phase=&status=&fromDate=&toDate=
+        // GET /api/protocols
         [HttpGet]
         [Authorize(Roles = "Admin,ClinicalTrialManager,Investigator,RegulatoryOfficer,DataManager")]
         public async Task<IActionResult> GetAll([FromQuery] ProtocolFilterDto filter)
@@ -52,6 +54,8 @@ namespace LifeTrack.ProtocolService.Controllers
         }
 
         // PATCH /api/protocols/{id}/archive
+        // Archives a protocol (moves to Archived status).
+        // Allowed from any non-Archived status.
         [HttpPatch("{id}/archive")]
         [Authorize(Roles = "Admin,ClinicalTrialManager")]
         public async Task<IActionResult> Archive(long id)
@@ -60,7 +64,18 @@ namespace LifeTrack.ProtocolService.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        // DELETE /api/protocols/{id}
+        // PATCH /api/protocols/{id}/unarchive
+        // Restores an Archived protocol back to its computed status
+        // (Upcoming / Ongoing / Completed) based on start/end dates.
+        [HttpPatch("{id}/unarchive")]
+        [Authorize(Roles = "Admin,ClinicalTrialManager")]
+        public async Task<IActionResult> Unarchive(long id)
+        {
+            var result = await _service.UnarchiveAsync(id);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        // DELETE /api/protocols/{id} — Archived protocols only
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin,ClinicalTrialManager")]
         public async Task<IActionResult> Delete(long id)

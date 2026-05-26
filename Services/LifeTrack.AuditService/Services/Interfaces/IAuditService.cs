@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // AuditService.API / Services / Interfaces / IAuditService.cs
+// NO CHANGES — Audit doesn't have Delete
 // ============================================================
 
 using LifeTrack.AuditService.DTOs;

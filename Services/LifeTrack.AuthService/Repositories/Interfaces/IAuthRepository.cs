@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // AuthService.API / Repositories / Interfaces / IAuthRepository.cs
+// NO CHANGES — Caching handled at implementation level
 // ============================================================
 
 using LifeTrack.Shared.Models;

@@ -11,7 +11,7 @@ namespace LifeTrack.PatientService.Services.Interfaces
     {
         Task<ApiResponse<List<AdverseEventDto>>> GetAllAsync(AdverseEventFilterDto filter);
         Task<ApiResponse<AdverseEventDto>> CreateAsync(CreateAdverseEventRequest req);
-        Task<ApiResponse<bool>> UpdateStatusAsync(long id, string status);
+        Task<ApiResponse<bool>> UpdateStatusAsync(long id, string status, string updaterRole);
         Task<ApiResponse<bool>> DeleteAsync(long id);
     }
 }

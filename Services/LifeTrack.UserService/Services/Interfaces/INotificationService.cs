@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // UserService.API / Services / Interfaces / INotificationService.cs
+// NO DELETE METHOD — Updated
 // ============================================================
 
 using LifeTrack.Shared.Wrappers;
@@ -14,6 +15,6 @@ namespace LifeTrack.UserService.Services.Interfaces
         Task<ApiResponse<NotificationDto>> CreateAsync(CreateNotificationRequest req);
         Task<ApiResponse<bool>> MarkAsReadAsync(long id);
         Task<ApiResponse<bool>> MarkAllAsReadAsync(long userId);
-        Task<ApiResponse<bool>> DeleteAsync(long id);
+        // ❌ DELETE REMOVED
     }
 }

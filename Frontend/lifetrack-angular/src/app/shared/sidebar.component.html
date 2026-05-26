@@ -1,8 +1,4 @@
-<!-- ============================================================
-     lt-sidebar.component.html
-     Shared sidebar — import this component in every page
-     ============================================================ -->
-
+<!-- sidebar.component.html -->
 <aside class="lt-sidebar">
 
   <!-- Logo -->
@@ -25,11 +21,19 @@
 
     <!-- CORE -->
     <div class="lt-nav-section">Core</div>
-    <!-- Admin/Staff dashboard -->
+
+    <!-- Generic dashboard — all staff except Patient and RegulatoryOfficer -->
     <a class="lt-nav-link" routerLink="/dashboard" routerLinkActive="active"
-      *ngIf="!hasRole(['Patient'])">
+       *ngIf="!hasRole(['Patient','RegulatoryOfficer'])">
       <span class="nav-ic">⊞</span> Dashboard
     </a>
+
+    <!-- Compliance Dashboard — RegulatoryOfficer only -->
+    <a class="lt-nav-link" routerLink="/compliance-dashboard" routerLinkActive="active"
+       *ngIf="hasRole(['RegulatoryOfficer'])">
+      <span class="nav-ic">⊞</span> Compliance Dashboard
+    </a>
+
     <!-- Patient dashboard -->
     <a class="lt-nav-link" routerLink="/my-dashboard" routerLinkActive="active"
       *ngIf="hasRole(['Patient'])">
@@ -46,28 +50,28 @@
     <!-- TRIAL OPS -->
     <div class="lt-nav-section">Trial Ops</div>
 
-    <!-- Protocols — all staff except Patient -->
+    <!-- Protocols -->
     <ng-container *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','RegulatoryOfficer','DataManager'])">
       <a class="lt-nav-link" routerLink="/protocols" routerLinkActive="active">
         <span class="nav-ic">📋</span> Protocols
       </a>
     </ng-container>
 
-    <!-- Sites — Admin, CTM, Investigator -->
-    <ng-container *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator'])">
+    <!-- Sites -->
+    <ng-container *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','RegulatoryOfficer'])">
       <a class="lt-nav-link" routerLink="/sites" routerLinkActive="active">
         <span class="nav-ic">📍</span> Sites
       </a>
     </ng-container>
 
-    <!-- Visits — CTM and Investigator only (NOT Admin) -->
-    <ng-container *ngIf="hasRole(['ClinicalTrialManager','Investigator'])">
+    <!-- Visits -->
+    <ng-container *ngIf="hasRole(['ClinicalTrialManager','Investigator','RegulatoryOfficer'])">
       <a class="lt-nav-link" routerLink="/visits" routerLinkActive="active">
         <span class="nav-ic">📅</span> Visits
       </a>
     </ng-container>
 
-    <!-- Patients — CTM, Investigator, DataManager, RegulatoryOfficer (NOT Admin) -->
+    <!-- Patients -->
     <ng-container *ngIf="hasRole(['ClinicalTrialManager','Investigator','DataManager','RegulatoryOfficer'])">
       <a class="lt-nav-link" routerLink="/patients" routerLinkActive="active">
         <span class="nav-ic">🧬</span> Patients
@@ -87,10 +91,38 @@
     <!-- COMPLIANCE -->
     <div class="lt-nav-section">Compliance</div>
 
-    <!-- Audit Log — Admin only -->
-    <ng-container *ngIf="hasRole(['Admin'])">
+    <!-- Audit Log — Admin + RegulatoryOfficer -->
+    <ng-container *ngIf="hasRole(['Admin','RegulatoryOfficer'])">
       <a class="lt-nav-link" routerLink="/audit" routerLinkActive="active">
         <span class="nav-ic">📊</span> Audit Log
+      </a>
+    </ng-container>
+
+    <!-- Adverse Events -->
+    <ng-container *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','RegulatoryOfficer','DataManager'])">
+      <a class="lt-nav-link" routerLink="/adverse-events" routerLinkActive="active">
+        <span class="nav-ic">⚠️</span> Adverse Events
+      </a>
+    </ng-container>
+
+    <!-- Deviations -->
+    <ng-container *ngIf="hasRole(['Admin','ClinicalTrialManager','Investigator','RegulatoryOfficer','DataManager'])">
+      <a class="lt-nav-link" routerLink="/deviations" routerLinkActive="active">
+        <span class="nav-ic">📐</span> Deviations
+      </a>
+    </ng-container>
+
+    <!-- KPI Reports -->
+    <ng-container *ngIf="hasRole(['Admin','ClinicalTrialManager','RegulatoryOfficer','DataManager'])">
+      <a class="lt-nav-link" routerLink="/kpi-reports" routerLinkActive="active">
+        <span class="nav-ic">📊</span> KPI Reports
+      </a>
+    </ng-container>
+
+    <!-- Documents -->
+    <ng-container *ngIf="hasRole(['Admin','ClinicalTrialManager','RegulatoryOfficer','DataManager','Investigator'])">
+      <a class="lt-nav-link" routerLink="/documents" routerLinkActive="active">
+        <span class="nav-ic">📄</span> Documents
       </a>
     </ng-container>
 

@@ -34,42 +34,28 @@ namespace LifeTrack.UserService.Services
 
         public async Task<ApiResponse<UserDto>> UpdateAsync(long id, UpdateUserRequest req)
         {
-            var updated = await _repo.UpdateAsync(id, req);
-            if (!updated)
-                return ApiResponse<UserDto>.Fail("User not found.");
+            var (success, message) = await _repo.UpdateAsync(id, req);
+            if (!success)
+                return ApiResponse<UserDto>.Fail(message);
 
             var user = await _repo.GetByIdAsync(id);
-
             _audit.Log("UPDATE", "User", id,
-                $"User '{req.Name}' ({req.Email}) updated. Role: '{req.RoleID}'.");
+                $"User '{req.Name}' ({req.Email}) updated. RoleID: {req.RoleID}.");
 
-            return ApiResponse<UserDto>.Ok(user!, "User updated successfully.");
+            return ApiResponse<UserDto>.Ok(user!, message);
         }
 
         public async Task<ApiResponse<UserDto>> ToggleActiveAsync(long id)
         {
-            var toggled = await _repo.ToggleActiveAsync(id);
-            if (!toggled)
-                return ApiResponse<UserDto>.Fail("User not found.");
+            var (success, message) = await _repo.ToggleActiveAsync(id);
+            if (!success)
+                return ApiResponse<UserDto>.Fail(message);
 
             var user = await _repo.GetByIdAsync(id);
-            var msg = user!.IsActive ? "User activated." : "User deactivated.";
-
             _audit.Log("UPDATE", "User", id,
-                $"User '{user.Name}' ({user.Email}) {(user.IsActive ? "activated" : "deactivated")}.");
+                $"User '{user!.Name}' — {message}");
 
-            return ApiResponse<UserDto>.Ok(user, msg);
-        }
-
-        public async Task<ApiResponse<bool>> DeleteAsync(long id)
-        {
-            var existing = await _repo.GetByIdAsync(id);
-            await _repo.DeleteAsync(id);
-
-            _audit.Log("DELETE", "User", id,
-                $"User '{existing?.Name}' ({existing?.Email}) deleted.");
-
-            return ApiResponse<bool>.Ok(true, "User deleted successfully.");
+            return ApiResponse<UserDto>.Ok(user, message);
         }
     }
 }

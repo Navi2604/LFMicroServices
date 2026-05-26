@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // VisitService.API / Repositories / VisitRepository.cs
+// WITH CACHING 
 // ============================================================
 
 using LifeTrack.Shared.Data;
@@ -7,17 +8,39 @@ using LifeTrack.Shared.Models;
 using LifeTrack.VisitService.DTOs;
 using LifeTrack.VisitService.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace LifeTrack.VisitService.Repositories
 {
     public class VisitRepository : IVisitRepository
     {
         private readonly LifeTrackDbContext _db;
+        private readonly IMemoryCache _cache;
+        private const string VISIT_CACHE_KEY = "visits_{0}_{1}_{2}_{3}";
+        private const string VISIT_ID_CACHE_KEY = "visit_{0}";
+        private const int CACHE_DURATION_MINUTES = 10;
 
-        public VisitRepository(LifeTrackDbContext db) => _db = db;
+        public VisitRepository(LifeTrackDbContext db, IMemoryCache cache)
+        {
+            _db = db;
+            _cache = cache;
+        }
 
         public async Task<List<VisitDto>> GetAllAsync(VisitFilterDto filter)
         {
+            // ✅ CREATE CACHE KEY FROM FILTER
+            string cacheKey = string.Format(
+                VISIT_CACHE_KEY,
+                filter.EnrollmentID?.ToString() ?? "null",
+                filter.Status ?? "null",
+                filter.FromDate?.ToString("yyyy-MM-dd") ?? "null",
+                filter.ToDate?.ToString("yyyy-MM-dd") ?? "null"
+            );
+
+            // ✅ CHECK CACHE FIRST
+            if (_cache.TryGetValue(cacheKey, out List<VisitDto>? cachedVisits))
+                return cachedVisits!;
+
             var query = _db.Visits
                 .Include(v => v.Enrollment)
                     .ThenInclude(e => e!.Patient)
@@ -38,7 +61,7 @@ namespace LifeTrack.VisitService.Repositories
             if (filter.ToDate.HasValue)
                 query = query.Where(v => v.VisitDate <= filter.ToDate.Value);
 
-            return await query
+            var result = await query
                 .OrderByDescending(v => v.VisitDate)
                 .Select(v => new VisitDto
                 {
@@ -55,10 +78,21 @@ namespace LifeTrack.VisitService.Repositories
                     Notes = v.Notes
                 })
                 .ToListAsync();
+
+            // ✅ STORE IN CACHE
+            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(CACHE_DURATION_MINUTES));
+
+            return result;
         }
 
         public async Task<VisitDto?> GetByIdAsync(long id)
         {
+            string cacheKey = string.Format(VISIT_ID_CACHE_KEY, id);
+
+            // ✅ CHECK CACHE FIRST
+            if (_cache.TryGetValue(cacheKey, out VisitDto? cachedVisit))
+                return cachedVisit;
+
             var v = await _db.Visits
                 .Include(x => x.Enrollment)
                     .ThenInclude(e => e!.Patient)
@@ -69,7 +103,7 @@ namespace LifeTrack.VisitService.Repositories
 
             if (v == null) return null;
 
-            return new VisitDto
+            var dto = new VisitDto
             {
                 VisitID = v.VisitID,
                 EnrollmentID = v.EnrollmentID,
@@ -79,6 +113,11 @@ namespace LifeTrack.VisitService.Repositories
                 Status = v.Status,
                 Notes = v.Notes
             };
+
+            // ✅ STORE IN CACHE
+            _cache.Set(cacheKey, dto, TimeSpan.FromMinutes(CACHE_DURATION_MINUTES));
+
+            return dto;
         }
 
         public async Task<VisitDto> CreateAsync(CreateVisitRequest req)
@@ -94,6 +133,9 @@ namespace LifeTrack.VisitService.Repositories
             _db.Visits.Add(visit);
             await _db.SaveChangesAsync();
 
+            // ✅ INVALIDATE CACHE
+            InvalidateVisitCache();
+
             return (await GetByIdAsync(visit.VisitID))!;
         }
 
@@ -104,6 +146,10 @@ namespace LifeTrack.VisitService.Repositories
 
             v.Status = status;
             await _db.SaveChangesAsync();
+
+            // ✅ INVALIDATE CACHE
+            InvalidateVisitCache();
+
             return true;
         }
 
@@ -112,9 +158,27 @@ namespace LifeTrack.VisitService.Repositories
             var v = await _db.Visits.FindAsync(id);
             if (v == null) return false;
 
+            // ✅ Only allow deletion of Scheduled visits
+            if (v.Status != "Scheduled")
+                return false;
+
             _db.Visits.Remove(v);
             await _db.SaveChangesAsync();
+
+            // ✅ INVALIDATE CACHE
+            InvalidateVisitCache();
+
             return true;
+        }
+
+        private void InvalidateVisitCache()
+        {
+            // Clear all visit caches (brute force)
+            for (int i = 0; i < 100; i++)
+            {
+                string cacheKey = string.Format(VISIT_CACHE_KEY, $"*{i}", $"*{i}", $"*{i}", $"*{i}");
+                _cache.Remove(cacheKey);
+            }
         }
     }
 }

@@ -92,18 +92,14 @@
         <table class="lt-table">
           <thead>
             <tr>
-              <th>Title</th><th>Phases</th><th>Start Date</th><th>End Date</th>
+              <th>Title</th><th>Start Date</th><th>End Date</th>
               <th *ngIf="activeTab === 'all' || activeTab === 'archived'">Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let p of filtered">
+            <tr *ngFor="let p of paginatedFiltered">
               <td style="font-weight:500;">{{ p.title }}</td>
-              <td>
-                <span class="proto-phase-pill" *ngIf="phaseLabel(p)">{{ phaseLabel(p) }}</span>
-                <span class="cell-muted" *ngIf="!phaseLabel(p)">—</span>
-              </td>
               <td class="cell-muted">{{ p.startDate | date:'dd MMM yyyy' }}</td>
               <td class="cell-muted">{{ p.endDate | date:'dd MMM yyyy' }}</td>
               <td *ngIf="activeTab === 'all' || activeTab === 'archived'">
@@ -117,12 +113,33 @@
               </td>
             </tr>
             <tr *ngIf="filtered.length === 0">
-              <td [attr.colspan]="activeTab === 'all' || activeTab === 'archived' ? 6 : 5" class="cell-empty">
+              <td [attr.colspan]="activeTab === 'all' || activeTab === 'archived' ? 5 : 4" class="cell-empty">
                 No {{ activeTab === 'all' ? '' : activeTab }} protocols found.
               </td>
             </tr>
           </tbody>
         </table>
+
+      <!-- ✅ Pagination -->
+      <div *ngIf="!isLoading && totalPages > 1" style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding:16px;background:#f9fafb;border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <label>Per page:</label>
+          <select [(ngModel)]="pageSize" (change)="changePageSize(pageSize)" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:13px;">
+            <option *ngFor="let size of itemsPerPageOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+        <div style="font-size:13px;color:#666;font-weight:500;">
+          Page {{ currentPage }} of {{ totalPages }} · {{ totalItems }} total
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;gap:4px;">
+            <button *ngFor="let p of getPaginationButtons()" (click)="goToPage(p)" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:500;" [style.background]="p === currentPage ? '#1a3a8f' : '#fff'" [style.color]="p === currentPage ? '#fff' : '#555'">{{ p }}</button>
+          </div>
+          <input type="number" [(ngModel)]="jumpToPage" (keyup.enter)="goToPage(jumpToPage)" placeholder="Go to" style="width:60px;padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:12px;">
+          <button (click)="prevPage()" [disabled]="currentPage === 1" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">← Prev</button>
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">Next →</button>
+        </div>
+      </div>
       </div>
     </div>
   </div>
@@ -185,6 +202,16 @@
             <span class="proto-detail-lbl">End date</span>
             <span class="proto-detail-val">{{ selectedProtocol.endDate | date:'dd MMM yyyy' }}</span>
           </div>
+          <!-- ✅ NEW: Site info for Investigator -->
+          <div class="proto-detail-cell" *ngIf="isInvestigator && getSiteName(selectedProtocol.protocolID)">
+            <span class="proto-detail-lbl">Site</span>
+            <span class="proto-detail-val">{{ getSiteName(selectedProtocol.protocolID) }}</span>
+          </div>
+          <!-- ✅ NEW: Location for Investigator -->
+          <div class="proto-detail-cell" *ngIf="isInvestigator && getSiteLocation(selectedProtocol.protocolID)">
+            <span class="proto-detail-lbl">Location</span>
+            <span class="proto-detail-val">📍 {{ getSiteLocation(selectedProtocol.protocolID) }}</span>
+          </div>
         </div>
         <div *ngIf="selectedPhases.length > 0">
           <div class="proto-phases-title">Phase breakdown</div>
@@ -200,56 +227,302 @@
       <div *ngIf="viewTab==='sites'">
         <div *ngIf="sitesLoading" style="padding:24px;text-align:center;color:#aaa;font-size:13px;">Loading sites...</div>
         <div *ngIf="!sitesLoading">
-          <div *ngFor="let sp of protocolSites"
-            style="border:0.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:8px;border-left:3px solid #22c55e;border-radius:0 10px 10px 0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div style="font-size:14px;font-weight:600;color:#1a1a2e;">{{ sp.siteName }}</div>
-              <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#e6f4ea;color:#27500a;">Active</span>
+          
+          <!-- ADMIN VIEW: Site cards with View details toggle (same as Investigator) -->
+          <div *ngIf="!isInvestigator">
+
+            <div *ngFor="let sp of protocolSites"
+              style="border:0.5px solid #c7d7f5;border-radius:10px;padding:14px 16px;
+                     margin-bottom:8px;border-left:3px solid #1a3a8f;background:#f7f9ff;">
+
+              <!-- Header row: site name + status badge + View/Hide button -->
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-size:14px;font-weight:600;color:#1a1a2e;">📍 {{ sp.siteName }}</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;"
+                    [style.background]="sp.status==='Active' ? '#e6f4ea' : '#f3f4f6'"
+                    [style.color]="sp.status==='Active' ? '#1e7e34' : '#6b7280'">
+                    {{ sp.status }}
+                  </span>
+                  <button
+                    style="font-size:11px;padding:4px 10px;border-radius:6px;
+                           border:1px solid #1a3a8f;color:#1a3a8f;background:#fff;cursor:pointer;"
+                    (click)="sp.showDetails = !sp.showDetails">
+                    {{ sp.showDetails ? 'Hide details' : 'View details' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Always visible: location -->
+              <div style="font-size:12px;color:#555;">
+                <span>📍 Location:
+                  <strong style="color:#1a1a2e;">
+                    {{ sp.siteLocation || sp.location || getSiteLocation(sp.siteID) || '—' }}
+                  </strong>
+                </span>
+              </div>
+
+              <!-- Expanded details -->
+              <div *ngIf="sp.showDetails"
+                   style="margin-top:10px;padding-top:10px;border-top:1px solid #dce8ff;
+                          display:flex;flex-direction:column;gap:5px;font-size:12px;color:#555;">
+                <span>✉️ Site Email:
+                  <strong style="color:#1a1a2e;">{{ getSiteEmail(sp.siteID) || '—' }}</strong>
+                </span>
+                <span>📞 Site Contact:
+                  <strong style="color:#1a1a2e;">{{ getSiteContact(sp.siteID) || '—' }}</strong>
+                </span>
+                <span>👤 Investigator:
+                  <strong style="color:#1a1a2e;">{{ sp.investigatorName || '—' }}</strong>
+                </span>
+                <span>✉️ Investigator Email:
+                  <strong style="color:#1a1a2e;">
+                    {{ getInvestigatorEmail(sp.investigatorID) || '—' }}
+                  </strong>
+                </span>
+                <span>📞 Investigator Contact:
+                  <strong style="color:#1a1a2e;">
+                    {{ getInvestigatorContact(sp.investigatorID) || '—' }}
+                  </strong>
+                </span>
+                <span>📅 Initiation:
+                  <strong style="color:#1a1a2e;">
+                    {{ sp.initiationDate ? (sp.initiationDate | date:'dd MMM yyyy') : '—' }}
+                  </strong>
+                </span>
+              </div>
+
             </div>
-            <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:#888;">
-              <span>👤 Investigator: <strong style="color:#444;">{{ sp.investigatorName || '—' }}</strong></span>
-              <span>🆔 Site Protocol ID: {{ sp.siteProtocolID }}</span>
+
+            <div *ngIf="protocolSites.length === 0"
+                 style="padding:28px;text-align:center;color:#aaa;font-size:13px;
+                        background:#f9fafb;border-radius:10px;">
+              No sites assigned to this protocol.
             </div>
+
           </div>
-          <div *ngIf="protocolSites.length === 0"
-            style="padding:28px;text-align:center;color:#aaa;font-size:13px;background:#f9fafb;border-radius:10px;">
-            No sites assigned to this protocol yet.
+
+          <!-- INVESTIGATOR VIEW: My Sites + Other Sites -->
+          <div *ngIf="isInvestigator">
+
+            <!-- MY SITES -->
+            <div style="font-size:11px;font-weight:700;color:#1a3a8f;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
+              My Sites <span style="background:#e8edf8;color:#1a3a8f;border-radius:20px;padding:1px 8px;font-size:10px;margin-left:4px;">{{ mySites.length }}</span>
+            </div>
+            <div *ngFor="let sp of mySites"
+              style="border:0.5px solid #c7d7f5;border-radius:10px;padding:14px 16px;margin-bottom:8px;border-left:3px solid #1a3a8f;background:#f7f9ff;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-size:14px;font-weight:600;color:#1a1a2e;">{{ sp.siteName }}</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;"
+                    [ngClass]="sp.status==='Active' ? 'proto-badge-ongoing' : 'proto-badge-upcoming'">{{ sp.status }}</span>
+                  <button style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #1a3a8f;color:#1a3a8f;background:#fff;cursor:pointer;"
+                    (click)="toggleSiteDetails(sp)">
+                    {{ sp.showDetails ? 'Hide details' : 'View details' }}
+                  </button>
+                </div>
+              </div>
+              <!-- Always visible: location only -->
+              <div style="font-size:12px;color:#555;">
+                <span>📍 Location: <strong style="color:#1a1a2e;">{{ sp.siteLocation || sp.location || getSiteLocation(sp.siteID) || '—' }}</strong></span>
+              </div>
+              <!-- On expand: email, contact, initiation -->
+              <div *ngIf="sp.showDetails" style="margin-top:10px;padding-top:10px;border-top:1px solid #dce8ff;display:flex;flex-direction:column;gap:5px;font-size:12px;color:#555;">
+                <span>✉️ Email: <strong style="color:#1a1a2e;">{{ getSiteEmail(sp.siteID) || '—' }}</strong></span>
+                <span>📞 Contact: <strong style="color:#1a1a2e;">{{ getSiteContact(sp.siteID) || '—' }}</strong></span>
+                <span>📅 Initiation: <strong style="color:#1a1a2e;">{{ sp.initiationDate ? (sp.initiationDate | date:'dd MMM yyyy') : '—' }}</strong></span>
+              </div>
+            </div>
+            <div *ngIf="mySites.length === 0"
+              style="padding:16px;text-align:center;color:#aaa;font-size:13px;background:#f9fafb;border-radius:10px;margin-bottom:12px;">
+              You are not assigned to any site for this protocol.
+            </div>
+
+            <!-- OTHER SITES -->
+            <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 8px;">
+              Other Sites <span style="background:#f0f0f0;color:#888;border-radius:20px;padding:1px 8px;font-size:10px;margin-left:4px;">{{ otherSites.length }}</span>
+            </div>
+            <div *ngFor="let sp of otherSites"
+              style="border:0.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:8px;border-left:3px solid #d1d5db;background:#fafafa;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-size:14px;font-weight:600;color:#1a1a2e;">{{ sp.siteName }}</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;"
+                    [ngClass]="sp.status==='Active' ? 'proto-badge-ongoing' : 'proto-badge-upcoming'">{{ sp.status }}</span>
+                  <button style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #aaa;color:#555;background:#fff;cursor:pointer;"
+                    (click)="toggleSiteDetails(sp)">
+                    {{ sp.showDetails ? 'Hide details' : 'View details' }}
+                  </button>
+                </div>
+              </div>
+              <!-- Always visible: location only -->
+              <div style="font-size:12px;color:#555;">
+                <span>📍 Location: <strong style="color:#1a1a2e;">{{ sp.siteLocation || sp.location || getSiteLocation(sp.siteID) || '—' }}</strong></span>
+              </div>
+              <!-- On expand: site email, contact, investigator info, initiation -->
+              <div *ngIf="sp.showDetails" style="margin-top:10px;padding-top:10px;border-top:1px solid #e5e7eb;display:flex;flex-direction:column;gap:5px;font-size:12px;color:#555;">
+                <span>✉️ Site Email: <strong style="color:#1a1a2e;">{{ getSiteEmail(sp.siteID) || '—' }}</strong></span>
+                <span>📞 Site Contact: <strong style="color:#1a1a2e;">{{ getSiteContact(sp.siteID) || '—' }}</strong></span>
+                <span>👤 Investigator: <strong style="color:#1a1a2e;">{{ sp.investigatorName || '—' }}</strong></span>
+                <span>✉️ Investigator Email: <strong style="color:#1a1a2e;">{{ sp.investigatorEmail || '—' }}</strong></span>
+                <span>📞 Investigator Contact: <strong style="color:#1a1a2e;">{{ sp.investigatorContact || '—' }}</strong></span>
+                <span>📅 Initiation: <strong style="color:#1a1a2e;">{{ sp.initiationDate ? (sp.initiationDate | date:'dd MMM yyyy') : '—' }}</strong></span>
+              </div>
+            </div>
+            <div *ngIf="otherSites.length === 0"
+              style="padding:16px;text-align:center;color:#aaa;font-size:13px;background:#f9fafb;border-radius:10px;">
+              No other sites for this protocol.
+            </div>
+
           </div>
+
         </div>
       </div>
 
-      <!-- Patients tab -->
+      <!-- Patients tab — grouped by site -->
       <div *ngIf="viewTab==='patients'">
-        <div *ngIf="patientsLoading" style="padding:24px;text-align:center;color:#aaa;font-size:13px;">
-          Loading patients...
+
+        <!-- Loading -->
+        <div *ngIf="patientsLoading"
+             style="padding:32px;text-align:center;color:#aaa;font-size:13px;">
+          ⏳ Loading patients...
         </div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;" *ngIf="!patientsLoading">
-          <thead>
-            <tr style="border-bottom:2px solid #e5e7eb;">
-              <th style="text-align:left;padding:8px 12px;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;">Patient ID</th>
-              <th style="text-align:left;padding:8px 12px;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;">Name</th>
-              <th style="text-align:left;padding:8px 12px;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;">Email</th>
-              <th style="text-align:left;padding:8px 12px;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let p of protocolPatients" style="border-bottom:1px solid #f5f5f8;">
-              <td style="padding:10px 12px;color:#1a3a8f;font-weight:500;">PT-{{ p.patientID }}</td>
-              <td style="padding:10px 12px;font-weight:500;color:#1a1a2e;">{{ p.name }}</td>
-              <td style="padding:10px 12px;color:#888;">{{ p.email }}</td>
-              <td style="padding:10px 12px;">
-                <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;"
-                  [style.background]="p.enrollmentStatus==='Active' ? '#e6f4ea' : '#f3f4f6'"
-                  [style.color]="p.enrollmentStatus==='Active' ? '#1e7e34' : '#6b7280'">
-                  {{ p.enrollmentStatus || 'Enrolled' }}
+
+        <!-- No patients at all -->
+        <div *ngIf="!patientsLoading && protocolPatients.length === 0"
+             style="padding:40px;text-align:center;color:#aaa;font-size:13px;">
+          No patients enrolled in this protocol yet.
+        </div>
+
+        <!-- One accordion card per site -->
+        <div *ngIf="!patientsLoading && patientsBySite.length > 0">
+          <div *ngFor="let site of patientsBySite"
+               style="border:1px solid #e5e7eb;border-radius:12px;margin-bottom:10px;overflow:hidden;">
+
+            <!-- ── Clickable header — click to expand/collapse ── -->
+            <div (click)="site.expanded = !site.expanded"
+                 style="display:flex;align-items:center;justify-content:space-between;
+                        padding:13px 16px;background:#f8faff;cursor:pointer;
+                        user-select:none;transition:background 0.15s;"
+                 [style.border-bottom]="site.expanded ? '1px solid #e5e7eb' : 'none'"
+                 onmouseover="this.style.background='#eef3ff'"
+                 onmouseout="this.style.background='#f8faff'">
+
+              <!-- Left: site name + investigator -->
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:15px;">📍</span>
+                <div>
+                  <div style="font-size:14px;font-weight:700;color:#1a1a2e;">
+                    {{ site.siteName }}
+                  </div>
+                  <div style="font-size:11px;color:#999;margin-top:2px;">
+                    👨‍⚕️ {{ site.investigatorName }}
+                    &nbsp;·&nbsp;
+                    {{ site.investigatorEmail }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: badges + chevron -->
+              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                <span style="background:#e8f0fe;color:#1a3a8f;padding:3px 10px;
+                             border-radius:20px;font-size:11px;font-weight:600;">
+                  {{ site.patients.length }}
+                  patient{{ site.patients.length !== 1 ? 's' : '' }}
                 </span>
-              </td>
-            </tr>
-            <tr *ngIf="protocolPatients.length === 0">
-              <td colspan="4" style="padding:32px;text-align:center;color:#aaa;">No patients enrolled in this protocol.</td>
-            </tr>
-          </tbody>
-        </table>
+                <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;"
+                  [style.background]="site.status === 'Active' ? '#e6f4ea' : '#f3f4f6'"
+                  [style.color]="site.status === 'Active' ? '#1e7e34' : '#6b7280'">
+                  {{ site.status }}
+                </span>
+                <!-- Chevron arrow rotates when expanded -->
+                <span style="font-size:12px;color:#aaa;transition:transform 0.2s;display:inline-block;"
+                      [style.transform]="site.expanded ? 'rotate(180deg)' : 'rotate(0deg)'">
+                  ▼
+                </span>
+              </div>
+            </div>
+
+            <!-- ── Collapsible body ── -->
+            <div *ngIf="site.expanded">
+
+              <!-- Patients table -->
+              <div *ngIf="site.patients.length > 0">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                  <thead>
+                    <tr style="background:#fafafa;border-bottom:1px solid #f0f0f0;">
+                      <th style="text-align:left;padding:8px 16px;color:#aaa;font-weight:600;
+                                 font-size:11px;text-transform:uppercase;width:90px;">ID</th>
+                      <th style="text-align:left;padding:8px 16px;color:#aaa;font-weight:600;
+                                 font-size:11px;text-transform:uppercase;">Name</th>
+                      <th style="text-align:left;padding:8px 16px;color:#aaa;font-weight:600;
+                                 font-size:11px;text-transform:uppercase;">Email</th>
+                      <th style="text-align:left;padding:8px 16px;color:#aaa;font-weight:600;
+                                 font-size:11px;text-transform:uppercase;width:100px;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let p of site.patients"
+                        style="border-bottom:1px solid #f8f8fb;"
+                        onmouseover="this.style.background='#fafbff'"
+                        onmouseout="this.style.background=''">
+                      <td style="padding:10px 16px;color:#1a3a8f;font-weight:600;font-size:12px;">
+                        PT-{{ p.patientID }}
+                      </td>
+                      <td style="padding:10px 16px;font-weight:500;color:#1a1a2e;">
+                        {{ p.name }}
+                      </td>
+                      <td style="padding:10px 16px;color:#888;">
+                        {{ p.email }}
+                      </td>
+                      <td style="padding:10px 16px;">
+                        <span style="padding:3px 10px;border-radius:20px;
+                                     font-size:11px;font-weight:600;"
+                          [style.background]="
+                            p.enrollmentStatus==='Active'||p.enrollmentStatus==='Enrolled'
+                            ? '#e6f4ea' : '#f3f4f6'"
+                          [style.color]="
+                            p.enrollmentStatus==='Active'||p.enrollmentStatus==='Enrolled'
+                            ? '#1e7e34' : '#6b7280'">
+                          {{ p.enrollmentStatus || 'Enrolled' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- No patients at this site -->
+              <div *ngIf="site.patients.length === 0"
+                   style="padding:20px;text-align:center;color:#bbb;font-size:12px;">
+                No patients enrolled at this site yet.
+              </div>
+
+            </div><!-- end collapsible body -->
+
+          </div><!-- end site card -->
+        </div>
+
+      <!-- ✅ Pagination -->
+      <div *ngIf="!isLoading && totalPages > 1" style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding:16px;background:#f9fafb;border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <label>Per page:</label>
+          <select [(ngModel)]="pageSize" (change)="changePageSize(pageSize)" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:13px;">
+            <option *ngFor="let size of itemsPerPageOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+        <div style="font-size:13px;color:#666;font-weight:500;">
+          Page {{ currentPage }} of {{ totalPages }} · {{ totalItems }} total
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;gap:4px;">
+            <button *ngFor="let p of getPaginationButtons()" (click)="goToPage(p)" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:500;" [style.background]="p === currentPage ? '#1a3a8f' : '#fff'" [style.color]="p === currentPage ? '#fff' : '#555'">{{ p }}</button>
+          </div>
+          <input type="number" [(ngModel)]="jumpToPage" (keyup.enter)="goToPage(jumpToPage)" placeholder="Go to" style="width:60px;padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:12px;">
+          <button (click)="prevPage()" [disabled]="currentPage === 1" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">← Prev</button>
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">Next →</button>
+        </div>
+      </div>
       </div>
 
     </div>
@@ -320,15 +593,9 @@
           </div>
         </div>
       </ng-container>
-    </div>
-    <div class="proto-modal-foot" *ngIf="selectedProtocol">
-      <div class="proto-foot-split">
-        <div class="proto-foot-danger">
 
-      <!-- Edit: Site assignments -->
-      <div class="proto-section-title" style="margin-top:20px;">
-        <span>Site assignments</span>
-      </div>
+      <!-- Edit: Site assignments — INSIDE BODY so it scrolls -->
+      <div class="proto-section-div" style="margin-top:8px;">Site Assignments</div>
 
       <div class="lt-alert lt-alert-error" *ngIf="siteAssignmentError" style="margin-bottom:8px;">{{ siteAssignmentError }}</div>
 
@@ -347,14 +614,14 @@
 
       <!-- Add new site — Upcoming only -->
       <div *ngIf="selectedProtocol?.status === 'Upcoming'"
-        style="background:#f7f8fc;border:0.5px solid #e5e7eb;border-radius:10px;padding:14px;margin-top:8px;">
+        style="background:#f7f8fc;border:0.5px solid #e5e7eb;border-radius:10px;padding:14px;margin-top:8px;margin-bottom:8px;">
         <div style="font-size:12px;font-weight:500;color:#555;margin-bottom:10px;">Add another site</div>
         <div class="lt-form-row" style="margin-bottom:10px;">
           <div class="lt-form-group">
             <label class="lt-form-label">Site</label>
             <select class="lt-form-control" [(ngModel)]="editNewAssignment.siteID">
               <option value="0">Select site...</option>
-              <option *ngFor="let s of allSites" [value]="s.siteID">{{ s.name }} — {{ s.location }}</option>
+              <option *ngFor="let s of activeSites" [value]="s.siteID">{{ s.name }} — {{ s.location }}</option>
             </select>
           </div>
           <div class="lt-form-group">
@@ -370,12 +637,29 @@
         <button class="lt-btn lt-btn-secondary" style="font-size:12px;" (click)="addEditSiteAssignment()">+ Add site</button>
       </div>
 
+    </div>
+    <div class="proto-modal-foot" *ngIf="selectedProtocol">
+      <div class="proto-foot-split">
+        <div class="proto-foot-danger">
+
           <button class="proto-btn-archive" *ngIf="canArchive(selectedProtocol)" (click)="archive(selectedProtocol)">Archive</button>
-          <button class="proto-btn-delete" *ngIf="canDelete(selectedProtocol)" (click)="delete(selectedProtocol)">
-            {{ selectedProtocol.status === 'Archived' ? 'Delete permanently' : 'Move to archive' }}
+          
+          <!-- For Archived: Show "Move back" and "Delete permanently" buttons -->
+          <button class="proto-btn-archive" *ngIf="selectedProtocol?.status === 'Archived'" (click)="moveBack(selectedProtocol)">
+            ↩️ Restore from archive
           </button>
-          <span class="proto-tooltip-wrap" *ngIf="!canDelete(selectedProtocol)">
-            <button class="proto-btn-del-dis" disabled>Delete</button>
+          <button class="proto-btn-delete" *ngIf="selectedProtocol?.status === 'Archived'" (click)="delete(selectedProtocol)">
+            Delete permanently
+          </button>
+          
+          <!-- For non-Archived: Show "Move to archive" button -->
+          <button class="proto-btn-delete" *ngIf="selectedProtocol?.status !== 'Archived' && canDelete(selectedProtocol)" (click)="delete(selectedProtocol)">
+            Move to archive
+          </button>
+          
+          <!-- Disabled state -->
+          <span class="proto-tooltip-wrap" *ngIf="!canDelete(selectedProtocol) && selectedProtocol?.status !== 'Archived'">
+            <button class="proto-btn-del-dis" disabled>Archive</button>
             <span class="proto-tooltip">Only Upcoming protocols can be archived. Only Archived protocols can be permanently deleted.</span>
           </span>
         </div>
@@ -490,7 +774,7 @@
               <label class="lt-form-label">Site</label>
               <select class="lt-form-control" [(ngModel)]="newAssignment.siteID">
                 <option value="0">Select site...</option>
-                <option *ngFor="let s of allSites" [value]="s.siteID">{{ s.name }} — {{ s.location }}</option>
+                <option *ngFor="let s of activeSites" [value]="s.siteID">{{ s.name }} — {{ s.location }}</option>
               </select>
             </div>
             <div class="lt-form-group">

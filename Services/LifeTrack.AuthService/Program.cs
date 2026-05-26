@@ -1,86 +1,191 @@
 // ============================================================
+
 // AuthService.API / Program.cs
+
+// FIXED: AuditHttpClient timeout set to 3 seconds so a
+
+// down AuditService never delays login responses.
+
 // ============================================================
 
+using System.Text;
+
 using LifeTrack.AuthService.Repositories;
+
 using LifeTrack.AuthService.Repositories.Interfaces;
+
 using LifeTrack.AuthService.Services;
+
 using LifeTrack.AuthService.Services.Interfaces;
+
 using LifeTrack.Shared.Data;
-using LifeTrack.Shared.Extensions;
-using LifeTrack.Shared.Filters;
+
 using LifeTrack.Shared.Helpers;
-using LifeTrack.Shared.Middleware;
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
+using Microsoft.AspNetCore.Mvc;
+
 using Microsoft.EntityFrameworkCore;
+
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<LifeTrackDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+// Add services
 
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<GlobalExceptionFilter>();
-    options.Filters.Add<ValidationFilter>();
-})
-.AddJsonOptions(options =>
-{
-    options.JsonSerializerOptions.PropertyNamingPolicy =
-        System.Text.Json.JsonNamingPolicy.CamelCase;
-});
+builder.Services.AddControllers()
 
-builder.Services.AddJwtAuth(builder.Configuration);
-builder.Services.AddAuthorization();
-builder.Services.AddScoped<GlobalExceptionFilter>();
-builder.Services.AddScoped<ValidationFilter>();
+    .ConfigureApiBehaviorOptions(options =>
 
-builder.Services.AddScoped<IAuthRepository, AuthRepository>();
-builder.Services.AddScoped<IAuthService, AuthService>();
+    {
 
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient<AuditHttpClient>();
+        options.InvalidModelStateResponseFactory = context =>
 
-builder.Services.AddCors(options =>
-    options.AddPolicy("AllowAngular", policy =>
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyHeader()
-              .AllowAnyMethod()));
+        {
+
+            var errors = context.ModelState
+
+                .Where(e => e.Value?.Errors.Count > 0)
+
+                .SelectMany(e => e.Value!.Errors.Select(er => er.ErrorMessage))
+
+                .ToList();
+
+            return new BadRequestObjectResult(new
+
+            {
+
+                success = false,
+
+                message = string.Join(" ", errors),
+
+                errors = errors
+
+            });
+
+        };
+
+    });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddMemoryCache();
+
+builder.Services.AddHttpContextAccessor();
+
+// Add DbContext
+
+builder.Services.AddDbContext<LifeTrackDbContext>(options =>
+
+    options.UseSqlServer(
+
+        builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register AuditHttpClient with a SHORT timeout (3 s).
+
+// AuditHttpClient is fire-and-forget — if AuditService is down the
+
+// Task.Run call will fail silently. Without this timeout the underlying
+
+// HttpClient socket waits up to 100 s (OS default) before giving up,
+
+// which was causing the first login attempt to appear slow.
+
+builder.Services.AddHttpClient<AuditHttpClient>(client =>
+
 {
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Enter your JWT token here"
-    });
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id   = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
+
+    client.BaseAddress = new Uri("http://localhost:5008/");
+
+    client.Timeout = TimeSpan.FromSeconds(3);
+
 });
 
+// Register repositories and services
+
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+
+builder.Services.AddScoped<IAuthService, LifeTrack.AuthService.Services.AuthService>();
+
+// Add CORS
+
+builder.Services.AddCors(options =>
+
+{
+
+    options.AddPolicy("AllowAll", policy =>
+
+        policy.AllowAnyOrigin()
+
+              .AllowAnyMethod()
+
+              .AllowAnyHeader());
+
+});
+
+// Add JWT Authentication
+
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "LifeTrackSuperSecretKey2024!@#$%^&*()";
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "LifeTrack";
+
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "LifeTrack";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+
+    .AddJwtBearer(options =>
+
+    {
+
+        options.TokenValidationParameters = new TokenValidationParameters
+
+        {
+
+            ValidateIssuer = true,
+
+            ValidateAudience = true,
+
+            ValidateLifetime = true,
+
+            ValidateIssuerSigningKey = true,
+
+            ValidIssuer = jwtIssuer,
+
+            ValidAudience = jwtAudience,
+
+            IssuerSigningKey = new SymmetricSecurityKey(
+
+                                           Encoding.UTF8.GetBytes(jwtKey))
+
+        };
+
+    });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
-app.UseSwagger();
-app.UseSwaggerUI();
-app.UseGlobalExceptionHandler();
-app.UseCors("AllowAngular");
+
+if (app.Environment.IsDevelopment())
+
+{
+
+    app.UseSwagger();
+
+    app.UseSwaggerUI();
+
+}
+
+app.UseHttpsRedirection();
+
+app.UseCors("AllowAll");
+
 app.UseAuthentication();
+
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();

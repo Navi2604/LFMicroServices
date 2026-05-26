@@ -99,7 +99,7 @@
           </thead>
           <tbody>
             <tr *ngFor="let log of logs; let i = index">
-              <td class="cell-muted" style="font-size:12px;">{{ ((page - 1) * pageSize) + i + 1 }}</td>
+              <td class="cell-muted" style="font-size:12px;">{{ ((currentPage - 1) * pageSize) + i + 1 }}</td>
               <td class="time-cell">{{ log.actionTime | date:'dd MMM yyyy, HH:mm:ss' }}</td>
               <td class="cell-muted" style="font-size:12px;">{{ log.userID }}</td>
               <td>
@@ -117,10 +117,22 @@
       </div>
 
       <!-- ── Pagination ─────────────────────────────────────────── -->
-      <div class="audit-pagination" *ngIf="!isLoading && totalLogs > pageSize">
-        <button (click)="prevPage()" [disabled]="page === 1">← Prev</button>
-        <span>Page {{ page }} · {{ totalLogs }} total</span>
-        <button (click)="nextPage()" [disabled]="logs.length < pageSize">Next →</button>
+      <!-- ✅ Manual Page Input Pagination -->
+      <div class="audit-pagination" *ngIf="!isLoading && totalLogs > pageSize" style="display:flex;align-items:center;justify-content:space-between;padding:16px;background:#f9fafb;border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <label>Per page:</label>
+          <select [(ngModel)]="pageSize" (change)="changePageSize(pageSize)" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:13px;">
+            <option *ngFor="let size of itemsPerPageOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+        <div style="font-size:13px;color:#666;font-weight:500;">
+          Page {{ currentPage }} of {{ totalPages }} · {{ totalLogs }} total
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" [(ngModel)]="manualPageInput" (keyup.enter)="goToManualPage()" placeholder="Page #" style="width:70px;padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:12px;">
+          <button (click)="prevPage()" [disabled]="currentPage === 1" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">← Prev</button>
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">Next →</button>
+        </div>
       </div>
 
     </div>

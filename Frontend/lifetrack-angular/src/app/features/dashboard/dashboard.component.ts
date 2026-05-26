@@ -5,8 +5,7 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 import {
   PatientApiService, ProtocolApiService, SiteApiService,
-  UserApiService, SiteProtocolApiService,
-  EnrollmentApiService, AuditApiService
+  UserApiService, SiteProtocolApiService, EnrollmentApiService
 } from '../../core/services/api.service';
 import { SidebarComponent } from '../../shared/sidebar.component';
 
@@ -17,22 +16,34 @@ import { SidebarComponent } from '../../shared/sidebar.component';
   templateUrl: './dashboard.component.html'
 })
 export class DashboardComponent implements OnInit {
-  userName        = '';
-  userRole        = '';
-  userId          = 0;
-  unreadCount     = 0;
+  userName = '';
+  userRole = '';
+  userId   = 0;
+  unreadCount = 0;
 
-  totalUsers      = 0;
-  totalPatients   = 0;
-  myPatientCount  = 0;
-  activeProtocols = 0;
-  totalSites      = 0;
-  upcomingVisits  = 0;
-  completedVisits = 0;
+  // ── KPI numbers ──────────────────────────────────────────────
+  totalUsers       = 0;
+  totalPatients    = 0;
+  myPatientCount   = 0;
+  activeProtocols  = 0;
+  completedProtocols = 0;
+  upcomingProtocols  = 0;
+  totalSites       = 0;
+  activeSites      = 0;
+  totalEnrollments = 0;
+  activeEnrollments = 0;
+  upcomingVisits   = 0;
+  completedVisits  = 0;
+  activeInvestigators = 0;
 
-  recentProtocols:  any[] = [];
-  recentSites:      any[] = [];
-  recentAuditLogs:  any[] = [];
+  // ── Loading flags ─────────────────────────────────────────────
+  loadingUsers      = false;
+  loadingPatients   = false;
+  loadingProtocols  = false;
+  loadingSites      = false;
+  loadingEnrollments = false;
+
+  hasAssignedProtocols = true;
 
   constructor(
     private authService:     AuthService,
@@ -42,7 +53,6 @@ export class DashboardComponent implements OnInit {
     private userApi:         UserApiService,
     private siteProtocolApi: SiteProtocolApiService,
     private enrollmentApi:   EnrollmentApiService,
-    private auditApi:        AuditApiService,
     private cdr:             ChangeDetectorRef,
     private router:          Router
   ) {}
@@ -51,7 +61,6 @@ export class DashboardComponent implements OnInit {
     this.userName = this.authService.getUserName();
     this.userRole = this.authService.getRole();
     this.userId   = this.authService.getUserId();
-    // Redirect Patient role to their own dashboard
     if (this.userRole === 'Patient') {
       this.router.navigate(['/my-dashboard']);
       return;
@@ -60,121 +69,121 @@ export class DashboardComponent implements OnInit {
   }
 
   hasRole(roles: string[]): boolean { return roles.includes(this.userRole); }
-  isInvestigator(): boolean { return this.userRole === 'Investigator'; }
+  isInvestigator(): boolean         { return this.userRole === 'Investigator'; }
 
-  hasAssignedProtocols = true; // loaded from siteProtocols
+  get currentHour(): number { return new Date().getHours(); }
+  get greeting(): string {
+    const h = this.currentHour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
 
   loadStats(): void {
+    const now = new Date();
+
     if (this.isInvestigator()) {
-      // ── Investigator: only his assigned data ──────────────────
+      // Investigator: load only assigned data
       this.siteProtocolApi.getAll({ investigatorID: this.userId }).subscribe(r => {
-        if (r.success) {
-          const sps = r.data ?? [];
-          const protocolIds = [...new Set(sps.map((sp: any) => sp.protocolID))] as number[];
-          const siteIds     = [...new Set(sps.map((sp: any) => sp.siteID))] as number[];
-          const spIds       = sps.map((sp: any) => sp.siteProtocolID) as number[];
+        if (!r.success) return;
+        const sps       = r.data ?? [];
+        const protocolIds = [...new Set(sps.map((sp: any) => sp.protocolID))] as number[];
+        const siteIds     = [...new Set(sps.map((sp: any) => sp.siteID))]     as number[];
+        const spIds       = sps.map((sp: any) => sp.siteProtocolID)            as number[];
 
-          this.totalSites = siteIds.length;
+        this.hasAssignedProtocols = sps.length > 0;
+        this.totalSites = siteIds.length;
 
-          // Filter protocols
-          this.protocolApi.getAll().subscribe(pr => {
-            if (pr.success) {
-              const now = new Date();
-              const mine = pr.data.filter(p => protocolIds.includes(p.protocolID));
-              this.activeProtocols = mine.filter(p =>
-                new Date(p.startDate) <= now && new Date(p.endDate) >= now).length;
-              this.recentProtocols = mine.slice(0, 4);
-              this.cdr.detectChanges();
-            }
-          });
-
-          // Filter sites
-          this.siteApi.getAll().subscribe(sr => {
-            if (sr.success) {
-              this.recentSites = sr.data.filter(s => siteIds.includes(s.siteID)).slice(0, 4);
-              this.cdr.detectChanges();
-            }
-          });
-
-          // Count my patients via enrollments
-          if (spIds.length > 0) {
-            const calls = spIds.map((id: number) =>
-              this.enrollmentApi.getAll({ siteProtocolId: id }).toPromise()
-            );
-            Promise.all(calls).then(results => {
-              const patientIds = new Set<number>();
-              results.forEach((res: any) => {
-                if (res?.success) res.data.forEach((e: any) => patientIds.add(e.patientID));
-              });
-              this.myPatientCount = patientIds.size;
-              this.cdr.detectChanges();
-            });
-          }
-
+        this.protocolApi.getAll().subscribe(pr => {
+          if (!pr.success) return;
+          const mine = pr.data.filter((p: any) => protocolIds.includes(p.protocolID));
+          this.activeProtocols    = mine.filter((p: any) => new Date(p.startDate) <= now && new Date(p.endDate) >= now).length;
+          this.completedProtocols = mine.filter((p: any) => p.status === 'Completed').length;
+          this.upcomingProtocols  = mine.filter((p: any) => new Date(p.startDate) > now).length;
           this.cdr.detectChanges();
+        });
+
+        this.siteApi.getAll().subscribe(sr => {
+          if (!sr.success) return;
+          const mySites   = sr.data.filter((s: any) => siteIds.includes(s.siteID));
+          this.activeSites = mySites.filter((s: any) => s.status === 'Active').length;
+          this.cdr.detectChanges();
+        });
+
+        if (spIds.length > 0) {
+          Promise.all(spIds.map((id: number) =>
+            this.enrollmentApi.getAll({ siteProtocolId: id }).toPromise()
+          )).then(results => {
+            const patientIds = new Set<number>();
+            let activeEnr = 0;
+            results.forEach((res: any) => {
+              if (res?.success) res.data.forEach((e: any) => {
+                patientIds.add(e.patientID);
+                if (e.status === 'Active' || e.status === 'Enrolled') activeEnr++;
+              });
+            });
+            this.myPatientCount   = patientIds.size;
+            this.activeEnrollments = activeEnr;
+            this.totalEnrollments  = patientIds.size;
+            this.cdr.detectChanges();
+          });
         }
+
+        this.cdr.detectChanges();
       });
 
     } else {
-      // ── All other roles: see everything ───────────────────────
-      if (this.hasRole(['Admin','ClinicalTrialManager','DataManager','RegulatoryOfficer'])) {
-        this.patientApi.getAll().subscribe(r => {
-          if (r.success) { this.totalPatients = r.data.length; this.cdr.detectChanges(); }
-        });
-      }
-
-      if (this.hasRole(['Admin','ClinicalTrialManager','DataManager','RegulatoryOfficer'])) {
-        this.protocolApi.getAll().subscribe(r => {
-          if (r.success) {
-            const now = new Date();
-            this.activeProtocols = r.data.filter(p =>
-              new Date(p.startDate) <= now && new Date(p.endDate) >= now).length;
-            this.recentProtocols = r.data.slice(0, 4);
-            this.cdr.detectChanges();
-          }
-        });
-      }
-
-      if (this.hasRole(['Admin','ClinicalTrialManager'])) {
-        this.siteApi.getAll().subscribe(r => {
-          if (r.success) {
-            this.totalSites  = r.data.length;
-            this.recentSites = r.data.slice(0, 4);
-            this.cdr.detectChanges();
-          }
-        });
-
+      // All other staff roles
+      if (this.hasRole(['Admin', 'ClinicalTrialManager'])) {
+        this.loadingUsers = true;
         this.userApi.getAll().subscribe(r => {
-          if (r.success) { this.totalUsers = r.data.length; this.cdr.detectChanges(); }
+          this.loadingUsers = false;
+          if (!r.success) return;
+          this.totalUsers = r.data.length;
+          this.activeInvestigators = r.data.filter((u: any) => u.roleName === 'Investigator' && u.isActive).length;
+          this.cdr.detectChanges();
         });
       }
 
-      // Recent audit logs — Admin only
-      if (this.hasRole(['Admin'])) {
-        this.auditApi.getLogs({ page: 1, pageSize: 10 }).subscribe(r => {
-          if (r.success) {
-            this.recentAuditLogs = r.data?.logs ?? r.data ?? [];
-            this.cdr.detectChanges();
-          }
+      if (this.hasRole(['Admin', 'ClinicalTrialManager', 'DataManager', 'RegulatoryOfficer'])) {
+        this.loadingPatients = true;
+        this.patientApi.getAll().subscribe(r => {
+          this.loadingPatients = false;
+          if (!r.success) return;
+          this.totalPatients = r.data.length;
+          this.cdr.detectChanges();
+        });
+
+        this.loadingProtocols = true;
+        this.protocolApi.getAll().subscribe(r => {
+          this.loadingProtocols = false;
+          if (!r.success) return;
+          this.activeProtocols    = r.data.filter((p: any) => new Date(p.startDate) <= now && new Date(p.endDate) >= now).length;
+          this.completedProtocols = r.data.filter((p: any) => p.status === 'Completed').length;
+          this.upcomingProtocols  = r.data.filter((p: any) => new Date(p.startDate) > now).length;
+          this.cdr.detectChanges();
+        });
+      }
+
+      if (this.hasRole(['Admin', 'ClinicalTrialManager'])) {
+        this.loadingSites = true;
+        this.siteApi.getAll().subscribe(r => {
+          this.loadingSites = false;
+          if (!r.success) return;
+          this.totalSites  = r.data.length;
+          this.activeSites = r.data.filter((s: any) => s.status === 'Active').length;
+          this.cdr.detectChanges();
+        });
+
+        this.loadingEnrollments = true;
+        this.enrollmentApi.getAll().subscribe(r => {
+          this.loadingEnrollments = false;
+          if (!r.success) return;
+          this.totalEnrollments  = r.data.length;
+          this.activeEnrollments = r.data.filter((e: any) => e.status === 'Active' || e.status === 'Enrolled').length;
+          this.cdr.detectChanges();
         });
       }
     }
-  }
-
-  getProtocolBadge(status: string): string {
-    const m: Record<string,string> = {
-      'Ongoing':'db-badge-green','Active':'db-badge-green',
-      'Upcoming':'db-badge-amber','Completed':'db-badge-blue',
-      'Archived':'db-badge-gray','Cancelled':'db-badge-red'
-    };
-    return m[status] ?? 'db-badge-gray';
-  }
-
-  getSiteBadge(status: string): string {
-    const m: Record<string,string> = {
-      'Active':'db-badge-green','Ongoing':'db-badge-green',
-      'Upcoming':'db-badge-amber','Inactive':'db-badge-gray','Closed':'db-badge-red'
-    };
-    return m[status] ?? 'db-badge-gray';
   }
 }

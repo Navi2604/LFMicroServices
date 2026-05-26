@@ -40,6 +40,15 @@ export class ProtocolsComponent implements OnInit {
   // ── Tab state ─────────────────────────────────────────────────────────────
   activeTab: 'all' | 'upcoming' | 'ongoing' | 'completed' | 'archived' = 'all';
 
+  // ✅ Pagination ─────────────────────────────────────────────────────────────
+  currentPage = 1;
+  pageSize = 10;
+  totalItems = 0;
+  totalPages = 0;
+  jumpToPage = 1;
+  itemsPerPageOptions = [10, 20, 50];
+  paginatedFiltered: ProtocolDto[] = [];
+
   // ── Modal state ───────────────────────────────────────────────────────────
   showCreate  = false;
   showView    = false;
@@ -47,10 +56,31 @@ export class ProtocolsComponent implements OnInit {
   selectedProtocol: ProtocolDto | null = null;
   selectedPhases:   ParsedPhase[] = [];
   viewTab         = 'details';
-  protocolPatients: any[] = [];
+  protocolPatients: any[] = [];        // flat list (kept for count badge)
+  patientsBySite:   {                  // grouped by site — used in Patients tab
+    siteProtocolID:    number;
+    siteName:          string;
+    investigatorName:  string;
+    investigatorEmail: string;
+    status:            string;
+    patients:          any[];
+    expanded:          boolean;        // accordion open/closed
+  }[] = [];
   patientsLoading  = false;
-  protocolSites:   any[] = [];
+  protocolSites:   any[] = [];  // For modal Sites tab
   sitesLoading     = false;
+
+  // ✅ NEW: Separate sites into My Sites and Other Sites
+  mySites: any[] = [];
+  otherSites: any[] = [];
+  currentUserID: number = 0;
+  otherProtocolsBySite: Map<number, any[]> = new Map();  // ✅ Cache other protocols
+
+  // ✅ NEW: Separate mapping for investigator - keeps site names for list
+  investigatorSiteMap: Map<number, { siteName: string; location: string }> = new Map();
+
+  // ✅ NEW: Mapping for Admin - shows all sites per protocol
+  adminProtocolSiteMap: Map<number, string> = new Map();  // protocolID -> comma-separated site names
 
   // ── Create form state ─────────────────────────────────────────────────────
   form = { title: '', startDate: '', endDate: '' };
@@ -93,12 +123,19 @@ export class ProtocolsComponent implements OnInit {
     this.isInvestigator = role === 'Investigator';
     this.canEdit       = ['Admin', 'ClinicalTrialManager'].includes(role);
     this.load();
-    if (this.canEdit) {
-      this.siteApi.getAll().subscribe(r => { if (r.success) this.allSites = r.data.filter((s: any) => s.status === 'Active'); });
-      this.userApi.getAll().subscribe(r => {
-        if (r.success) this.allInvestigators = r.data.filter((u: any) => u.roleName === 'Investigator');
-      });
-    }
+    // Load allSites for ALL roles (needed for location/email/contact lookup)
+    this.siteApi.getAll().subscribe(r => { 
+      if (r.success) {
+        this.allSites = r.data;
+        if (this.canEdit) {
+          this.loadAdminSiteNames();
+        }
+      }
+    });
+    // Load investigators for ALL roles (Investigator needs it for getInvestigatorEmail on other sites)
+    this.userApi.getAll().subscribe(r => {
+      if (r.success) this.allInvestigators = r.data.filter((u: any) => u.roleName === 'Investigator');
+    });
   }
 
   // ── Tab switching ─────────────────────────────────────────────────────────
@@ -117,6 +154,7 @@ export class ProtocolsComponent implements OnInit {
     } else {
       this.filtered = sorted.filter(p => p.status.toLowerCase() === this.activeTab);
     }
+    this.calculateTotalPages(); // ✅ NEW
   }
 
   // ── Computed status ───────────────────────────────────────────────────────
@@ -170,16 +208,21 @@ export class ProtocolsComponent implements OnInit {
     return this.calcStatus(start, end);
   }
 
-  // ── View modal ────────────────────────────────────────────────────────────
+  // ── View modal ──────────────────────────────────────────────
 
   openView(p: ProtocolDto): void {
     this.selectedProtocol  = p;
     this.selectedPhases    = this.parsePhasesFromDto(p);
     this.viewTab           = 'details';
     this.protocolPatients  = [];
-    this.protocolSites     = [];
+    this.protocolSites     = [];  // ✅ Reset sites array
+    this.mySites           = [];  // ✅ Reset my sites
+    this.otherSites        = [];  // ✅ Reset other sites
+    this.otherProtocolsBySite.clear();  // ✅ Clear cached other protocols
     this.showView          = true;
+    // ✅ Load both sites and patients when opening modal
     this.loadProtocolSites();
+    this.loadProtocolPatients();
   }
 
   loadProtocolSites(): void {
@@ -189,6 +232,7 @@ export class ProtocolsComponent implements OnInit {
       this.sitesLoading = false;
       if (r.success) {
         this.protocolSites = r.data;
+        this.separateSites();  // ✅ NEW: Separate into My Sites and Other Sites
         this.cdr.detectChanges();
       }
     });
@@ -196,38 +240,68 @@ export class ProtocolsComponent implements OnInit {
 
   loadProtocolPatients(): void {
     if (!this.selectedProtocol) return;
-    this.patientsLoading = true;
-    const protocolId = this.selectedProtocol.protocolID;
+    this.patientsLoading  = true;
+    this.patientsBySite   = [];
+    this.protocolPatients = [];
 
-    // Get site-protocols for this protocol (filtered by investigator if needed)
-    const params: any = { protocolID: protocolId };
+    const params: any = { protocolID: this.selectedProtocol.protocolID };
     if (this.isInvestigator) params['investigatorID'] = this.userId;
 
     this.siteProtocolApi.getAll(params).subscribe(sp => {
-      if (sp.success && sp.data.length > 0) {
-        const spIds = sp.data.map((x: any) => x.siteProtocolID);
-
-        Promise.all(spIds.map((id: number) =>
-          this.enrollmentApi.getAll({ siteProtocolId: id }).toPromise()
-        )).then(results => {
-          const patientIds = new Set<number>();
-          results.forEach((res: any) => {
-            if (res?.success) res.data.forEach((e: any) => patientIds.add(e.patientID));
-          });
-
-          this.patientApi.getAll().subscribe(r => {
-            this.patientsLoading = false;
-            if (r.success) {
-              this.protocolPatients = r.data.filter(p => patientIds.has(p.patientID));
-              this.cdr.detectChanges();
-            }
-          });
-        });
-      } else {
-        this.patientsLoading  = false;
-        this.protocolPatients = [];
+      if (!sp.success || sp.data.length === 0) {
+        this.patientsLoading = false;
         this.cdr.detectChanges();
+        return;
       }
+
+      const siteProtocols = sp.data; // [{siteProtocolID, siteName, investigatorID, status, ...}]
+
+      // Load all patients once, then for each site-protocol load its enrollments
+      this.patientApi.getAll().subscribe(allPatientsRes => {
+        if (!allPatientsRes.success) { this.patientsLoading = false; return; }
+        const allPatients = allPatientsRes.data;
+
+        Promise.all(
+          siteProtocols.map((site: any) =>
+            this.enrollmentApi.getAll({ siteProtocolId: site.siteProtocolID }).toPromise()
+              .then((res: any) => ({
+                siteProtocolID:    site.siteProtocolID,
+                siteName:          site.siteName,
+                investigatorName:  site.investigatorName  || this.getInvestigatorName(site.investigatorID),
+                investigatorEmail: site.investigatorEmail || this.getInvestigatorEmail(site.investigatorID),
+                status:            site.status,
+                enrollments:       res?.success ? res.data : []
+              }))
+          )
+        ).then(siteResults => {
+          const allPatientIds = new Set<number>();
+
+          this.patientsBySite = siteResults.map((s: any, idx: number) => {
+            const patientIds = s.enrollments.map((e: any) => e.patientID);
+            const patients   = allPatients
+              .filter((p: any) => patientIds.includes(p.patientID))
+              .map((p: any) => {
+                const enr = s.enrollments.find((e: any) => e.patientID === p.patientID);
+                return { ...p, enrollmentStatus: enr?.status || 'Enrolled' };
+              });
+            patientIds.forEach((id: number) => allPatientIds.add(id));
+            return {
+              siteProtocolID:    s.siteProtocolID,
+              siteName:          s.siteName,
+              investigatorName:  s.investigatorName,
+              investigatorEmail: s.investigatorEmail,
+              status:            s.status,
+              patients,
+              expanded:          idx === 0   // first site open by default
+            };
+          });
+
+          this.protocolPatients = allPatients.filter(
+            (p: any) => allPatientIds.has(p.patientID));
+          this.patientsLoading  = false;
+          this.cdr.detectChanges();
+        });
+      });
     });
   }
 
@@ -382,7 +456,11 @@ export class ProtocolsComponent implements OnInit {
   // ── Archive ───────────────────────────────────────────────────────────────
 
   archive(p: ProtocolDto): void {
-    if (!confirm(`Archive protocol "${p.title}"? It will move to the Archived tab.`)) return;
+    if (p.status === 'Archived') {
+      this.showMsg('error', 'This protocol is already archived.');
+      return;
+    }
+    if (!confirm(`Archive protocol "${p.title}"?\n\nIt will move to the Archived tab. You can restore it later.`)) return;
     this.protocolApi.archive(p.protocolID).subscribe({
       next: r => {
         if (r.success) {
@@ -394,6 +472,35 @@ export class ProtocolsComponent implements OnInit {
         }
       },
       error: err => this.showMsg('error', err?.error?.message || 'Archive failed.')
+    });
+  }
+
+  // Restore an archived protocol back to its computed status (Upcoming/Ongoing/Completed)
+  moveBack(p: ProtocolDto): void {
+    const today = new Date();
+    const start = new Date(p.startDate);
+    const end   = new Date(p.endDate);
+
+    let restoredStatus = 'Upcoming';
+    if (today > end)         restoredStatus = 'Completed';
+    else if (today >= start) restoredStatus = 'Ongoing';
+
+    if (!confirm(
+      `Restore "${p.title}" from archive?\n\nIt will be moved back to "${restoredStatus}" based on its dates.`
+    )) return;
+
+    this.protocolApi.unarchive(p.protocolID).subscribe({
+      next: r => {
+        if (r.success) {
+          this.closeEdit();
+          this.load();
+          this.showMsg('success', `Protocol "${p.title}" restored to ${restoredStatus}.`);
+        } else {
+          this.showMsg('error', r.message || 'Failed to restore protocol.');
+        }
+      },
+      error: (err: any) =>
+        this.showMsg('error', err?.error?.message || 'Failed to restore protocol.')
     });
   }
 
@@ -441,14 +548,74 @@ export class ProtocolsComponent implements OnInit {
     }
   }
 
-  // ── Site assignment helpers ───────────────────────────────────────────────
+  // ✅ NEW: Load site names for Admin
+  loadAdminSiteNames(): void {
+    this.adminProtocolSiteMap.clear();
+    
+    // Load ALL site-protocols at once
+    this.siteProtocolApi.getAll({}).subscribe({
+      next: (response: any) => {
+        if (response.success && response.data) {
+          // Group by protocolID
+          const groupedByProtocol = new Map<number, string[]>();
+          
+          response.data.forEach((sp: any) => {
+            if (!groupedByProtocol.has(sp.protocolID)) {
+              groupedByProtocol.set(sp.protocolID, []);
+            }
+            groupedByProtocol.get(sp.protocolID)!.push(sp.siteName);
+          });
+          
+          // Store in adminProtocolSiteMap
+          groupedByProtocol.forEach((siteNames, protocolID) => {
+            this.adminProtocolSiteMap.set(protocolID, siteNames.join(', '));
+          });
+          
+          this.cdr.detectChanges();
+        }
+      }
+    });
+  }
 
-  getSiteName(id: number): string {
-    return this.allSites.find(s => s.siteID === +id)?.name ?? '';
+  getSiteName(protocolID: number): string {
+    // ✅ For Investigator: lookup from investigatorSiteMap (persistent across modal open/close)
+    if (this.isInvestigator) {
+      const site = this.investigatorSiteMap.get(protocolID);
+      return site?.siteName ?? '';
+    }
+    // ✅ For Admin: lookup from adminProtocolSiteMap
+    return this.adminProtocolSiteMap.get(protocolID) || '—';
+  }
+
+  get activeSites(): any[] {
+    return this.allSites.filter(s => s.status === 'Active');
+  }
+
+  getSiteLocation(id: number): string {
+    // ✅ For Investigator: get location from investigatorSiteMap (id is protocolID)
+    if (this.isInvestigator && this.investigatorSiteMap.has(id)) {
+      const site = this.investigatorSiteMap.get(id);
+      return site?.location ?? '';
+    }
+    // ✅ Otherwise look up by siteID from allSites
+    const site = this.allSites.find(s => s.siteID === id);
+    return site?.location || '—';
+  }
+
+  // ✅ NEW: Get site email from allSites array
+  getSiteEmail(siteID: number): string {
+    const site = this.allSites.find(s => s.siteID === siteID);
+    return site?.email || '—';
+  }
+
+  // ✅ NEW: Get site contact from allSites array
+  getSiteContact(siteID: number): string {
+    const site = this.allSites.find(s => s.siteID === siteID);
+    return site?.contact || site?.phone || '—';
   }
 
   getInvestigatorName(id: number): string {
-    return this.allInvestigators.find(u => u.userID === +id)?.name ?? '';
+    return this.allInvestigators.find(u => +u.userID === +id)?.name ?? '';
   }
 
   addSiteAssignment(): void {
@@ -500,6 +667,12 @@ export class ProtocolsComponent implements OnInit {
     for (const p of this.phases) {
       if (!p.startDate || !p.endDate) { this.errorMsg = `Fill in all dates for Phase ${p.phaseNumber}.`; return; }
     }
+    // ✅ VALIDATE: At least one site must be assigned
+    if (this.siteAssignments.length === 0) {
+      this.errorMsg = 'You must assign at least one site to create a protocol.';
+      this.siteAssignmentError = 'At least one site assignment is required.';
+      return;
+    }
 
     const payload = {
       title:     this.form.title.trim(),
@@ -547,6 +720,15 @@ export class ProtocolsComponent implements OnInit {
     if (this.isInvestigator) {
       this.siteProtocolApi.getAll({ investigatorID: this.userId }).subscribe(sp => {
         if (sp.success) {
+          // ✅ Store in investigatorSiteMap (separate from protocolSites for modal)
+          this.investigatorSiteMap.clear();
+          sp.data.forEach((x: any) => {
+            this.investigatorSiteMap.set(x.protocolID, {
+              siteName: x.siteName,
+              location: x.location || x.siteLocation || ''
+            });
+          });
+          
           const protocolIds = new Set(sp.data.map((x: any) => x.protocolID));
           this.protocolApi.getAll().subscribe(r => {
             this.isLoading = false;
@@ -571,6 +753,12 @@ export class ProtocolsComponent implements OnInit {
         if (r.success) {
           this.protocols = r.data ?? [];
           this.applyFilter();
+          
+          // ✅ For Admin: Load site names after protocols are loaded
+          if (!this.isInvestigator && this.allSites.length > 0) {
+            this.loadAdminSiteNames();
+          }
+          
           this.cdr.detectChanges();
         }
       },
@@ -617,5 +805,133 @@ export class ProtocolsComponent implements OnInit {
   }
 
   canDelete(p: ProtocolDto): boolean { return p.status === 'Upcoming' || p.status === 'Archived'; }
-  canArchive(p: ProtocolDto): boolean { return p.status === 'Ongoing' || p.status === 'Completed'; }
+  canArchive(p: ProtocolDto): boolean { return p.status !== 'Archived'; }
+
+  // ✅ Pagination methods
+  calculateTotalPages(): void {
+    this.totalItems = this.filtered.length;
+    this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+    this.currentPage = 1;
+    this.applyPagination();
+  }
+
+  applyPagination(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    this.paginatedFiltered = this.filtered.slice(start, end);
+    this.cdr.detectChanges();
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.applyPagination();
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.applyPagination();
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.applyPagination();
+    }
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.calculateTotalPages();
+  }
+
+  getPaginationButtons(): number[] {
+    const buttons: number[] = [];
+    const maxButtons = 10;
+    const startPage = Math.max(1, this.currentPage - 4);
+    const endPage = Math.min(this.totalPages, startPage + maxButtons - 1);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      buttons.push(i);
+    }
+    
+    return buttons;
+  }
+
+  // ✅ NEW: Separate sites into My Sites and Other Sites
+  separateSites(): void {
+    this.currentUserID = this.authService.getUserId();
+    
+    this.mySites = this.protocolSites.filter(
+      site => site.investigatorID === this.currentUserID
+    ).map(site => ({ ...site, showDetails: false }));  // ✅ Reset showDetails flag
+    
+    this.otherSites = this.protocolSites.filter(
+      site => site.investigatorID !== this.currentUserID
+    ).map(site => ({ ...site, showDetails: false }));  // ✅ Reset showDetails flag
+  }
+
+  // ✅ NEW: Navigate to site details
+  viewSiteDetails(siteID: number): void {
+    console.log('Navigate to site:', siteID);
+    // TODO: Add router navigation if needed
+    // this.router.navigate(['/sites', siteID]);
+  }
+
+  // ✅ NEW: Navigate to site protocol details
+  viewMoreDetails(siteProtocolID: number): void {
+    console.log('Navigate to site protocol:', siteProtocolID);
+    // TODO: Add router navigation if needed
+    // this.router.navigate(['/site-protocols', siteProtocolID]);
+  }
+
+  // ✅ NEW: Toggle site details visibility
+  toggleSiteDetails(site: any): void {
+    site.showDetails = !site.showDetails;
+    // Load other protocols at this site when expanding
+    if (site.showDetails && !this.otherProtocolsBySite.has(site.siteID)) {
+      this.loadOtherProtocolsAtSite(site.siteID);
+    }
+  }
+
+  // ✅ NEW: Load other protocols running at this site
+  loadOtherProtocolsAtSite(siteID: number): void {
+    this.siteProtocolApi.getAll({ siteID: siteID }).subscribe({
+      next: (response: any) => {
+        if (response.success) {
+          const protocols = response.data
+            .filter((sp: any) => sp.protocolID !== this.selectedProtocol?.protocolID)
+            .map((sp: any) => ({
+              title: sp.protocolTitle,
+              protocolID: sp.protocolID,
+              investigatorName: sp.investigatorName,
+              investigatorEmail: this.getInvestigatorEmail(sp.investigatorID),
+              investigatorContact: this.getInvestigatorContact(sp.investigatorID)
+            }));
+          this.otherProtocolsBySite.set(siteID, protocols);
+          this.cdr.detectChanges();
+        }
+      }
+    });
+  }
+
+  // ✅ NEW: Get other protocols running at this site (from cache)
+  getOtherProtocolsAtSite(siteID: number): any[] {
+    return this.otherProtocolsBySite.get(siteID) || [];
+  }
+
+  // ✅ NEW: Get investigator email from allInvestigators array
+  getInvestigatorEmail(investigatorID: number): string {
+    const investigator = this.allInvestigators.find(inv => +inv.userID === +investigatorID);
+    return investigator?.email || '—';
+  }
+
+  // ✅ NEW: Get investigator contact from allInvestigators array
+  getInvestigatorContact(investigatorID: number): string {
+    const investigator = this.allInvestigators.find(inv => inv.userID === investigatorID);
+    return investigator?.contact || investigator?.phone || '—';
+  }
 }

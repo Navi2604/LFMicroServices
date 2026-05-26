@@ -1,6 +1,11 @@
-﻿// ISiteService.cs
+﻿// ============================================================
+// SiteService.API / Services / Interfaces / ISiteService.cs
+// DELETE METHOD REMOVED — Updated
+// ============================================================
+
 using LifeTrack.SiteService.DTOs;
 using LifeTrack.Shared.Wrappers;
+
 namespace LifeTrack.SiteService.Services.Interfaces
 {
     public interface ISiteService
@@ -9,6 +14,6 @@ namespace LifeTrack.SiteService.Services.Interfaces
         Task<ApiResponse<SiteDto>> GetByIdAsync(long id);
         Task<ApiResponse<SiteDto>> CreateAsync(CreateSiteRequest req);
         Task<ApiResponse<SiteDto>> UpdateAsync(long id, UpdateSiteRequest req);
-        Task<ApiResponse<bool>> DeleteAsync(long id);
+        // ❌ DELETE REMOVED
     }
 }

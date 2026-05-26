@@ -80,12 +80,42 @@ namespace LifeTrack.SiteService.Repositories
             };
         }
 
-        public async Task<bool> UpdateStatusAsync(long id, string status)
+        public async Task<bool> UpdateStatusAsync(long id, string status, string updaterRole)
         {
-            var d = await _db.Deviations.FindAsync(id);
+            var d = await _db.Deviations
+                .Include(dev => dev.SiteProtocol)
+                .FirstOrDefaultAsync(dev => dev.DeviationID == id);
+
             if (d == null) return false;
 
             d.Status = status;
+
+            // ── Notify CTMs when RO makes a status change ──
+            if (updaterRole == "RegulatoryOfficer")
+            {
+                var siteName = d.SiteProtocol?.Site?.Name ?? $"SiteProtocol #{d.SiteProtocolID}";
+                var message = $"📋 Deviation DEV-{id} reviewed by Regulatory Officer. " +
+                               $"Status: {status} | Severity: {d.Severity} | Site: {siteName}";
+
+                // RoleID 2 = ClinicalTrialManager
+                var recipients = await _db.Users
+                    .Where(u => u.RoleID == 2 && u.IsActive)
+                    .Select(u => u.UserID)
+                    .ToListAsync();
+
+                foreach (var uid in recipients)
+                {
+                    _db.Notifications.Add(new LifeTrack.Shared.Models.Notification
+                    {
+                        UserID = uid,
+                        Message = message,
+                        Category = "Compliance",
+                        Status = "Unread",
+                        CreatedDate = DateTime.UtcNow
+                    });
+                }
+            }
+
             await _db.SaveChangesAsync();
             return true;
         }

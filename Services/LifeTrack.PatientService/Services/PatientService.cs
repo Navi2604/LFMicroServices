@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // PatientService.API / Services / PatientService.cs
+// DELETE METHOD REMOVED — Updated
 // ============================================================
 
 using LifeTrack.PatientService.DTOs;
@@ -42,18 +43,6 @@ namespace LifeTrack.PatientService.Services
             return ApiResponse<PatientDto>.Ok(patient, "Patient created successfully.");
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(long id)
-        {
-            var existing = await _repo.GetByIdAsync(id);
-            var deleted = await _repo.DeleteAsync(id);
-
-            if (deleted)
-                _audit.Log("DELETE", "Patient", id,
-                    $"Patient '{existing?.Name}' deleted.");
-
-            return deleted
-                ? ApiResponse<bool>.Ok(true, "Patient deleted successfully.")
-                : ApiResponse<bool>.Fail("Patient not found.");
-        }
+        // ❌ DELETE REMOVED — Patients are deactivated via enrollment status, not deleted
     }
 }

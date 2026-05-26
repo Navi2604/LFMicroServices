@@ -24,15 +24,16 @@ export class JwtInterceptor implements HttpInterceptor {
 
     if (token) {
       request = request.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`
-        }
+        setHeaders: { Authorization: `Bearer ${token}` }
       });
     }
 
     return next.handle(request).pipe(
       catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
+        // Auth endpoints return HTTP 200, so a 401 here only happens
+        // on protected routes when the session has expired — safe to logout.
+        const isAuthEndpoint = error.url?.includes('/api/auth/') ?? false;
+        if (error.status === 401 && !isAuthEndpoint) {
           this.authService.logout();
         }
         return throwError(() => error);

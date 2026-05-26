@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // AuthService.API / Services / Interfaces / IAuthService.cs
+// NO CHANGES — Service delegates to cached repository
 // ============================================================
 
 using LifeTrack.AuthService.DTOs;

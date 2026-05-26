@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // SiteService.API / Controllers / SiteController.cs
+// DELETE ENDPOINT REMOVED — Updated
 // ============================================================
 
 using LifeTrack.SiteService.DTOs;
@@ -51,13 +52,6 @@ namespace LifeTrack.SiteService.Controllers
             return result.Success ? Ok(result) : NotFound(result);
         }
 
-        // DELETE /api/sites/{id}
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,ClinicalTrialManager")]
-        public async Task<IActionResult> Delete(long id)
-        {
-            var result = await _service.DeleteAsync(id);
-            return result.Success ? Ok(result) : NotFound(result);
-        }
+        // ❌ DELETE REMOVED — Sites are kept for historical records
     }
 }

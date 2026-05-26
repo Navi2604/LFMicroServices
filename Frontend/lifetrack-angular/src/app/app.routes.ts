@@ -64,7 +64,7 @@ export const routes: Routes = [
       import('./features/audit/audit.component')
         .then(m => m.AuditComponent),
     canActivate: [AuthGuard],
-    data: { roles: ['Admin'] }
+    data: { roles: ['Admin', 'RegulatoryOfficer'] }
   },
 
   // Patients
@@ -94,7 +94,7 @@ export const routes: Routes = [
       import('./features/sites/sites.component')
         .then(m => m.SitesComponent),
     canActivate: [AuthGuard],
-    data: { roles: ['Admin', 'ClinicalTrialManager', 'Investigator'] }
+    data: { roles: ['Admin', 'ClinicalTrialManager', 'Investigator', 'RegulatoryOfficer'] }
   },
 
   // Visits
@@ -104,7 +104,58 @@ export const routes: Routes = [
       import('./features/visits/visits.component')
         .then(m => m.VisitsComponent),
     canActivate: [AuthGuard],
-    data: { roles: ['Admin', 'Investigator', 'ClinicalTrialManager'] }
+    data: { roles: ['Admin', 'Investigator', 'ClinicalTrialManager', 'RegulatoryOfficer'] }
+  },
+
+  // Adverse Events — CTM, Investigator, RegulatoryOfficer, DataManager
+  {
+    path: 'adverse-events',
+    loadComponent: () =>
+      import('./features/adverse-events/adverse-events.component')
+      .then(m => m.AdverseEventsComponent),
+    canActivate: [AuthGuard],
+    data: { roles: ['Admin', 'ClinicalTrialManager', 'Investigator', 'RegulatoryOfficer', 'DataManager'] }
+  },
+
+  // Deviations — CTM, Investigator, RegulatoryOfficer, DataManager
+  {
+    path: 'deviations',
+    loadComponent: () =>
+      import('./features/deviations/deviations.component')
+        .then(m => m.DeviationsComponent),
+    canActivate: [AuthGuard],
+    data: { roles: ['Admin', 'ClinicalTrialManager', 'Investigator', 'RegulatoryOfficer', 'DataManager'] }
+  },
+
+  // KPI Reports — CTM, RegulatoryOfficer, DataManager
+  {
+    path: 'kpi-reports',
+    loadComponent: () =>
+      import('./features/kpi-reports/kpi-reports.component')
+
+        .then(m => m.KpiReportsComponent),
+    canActivate: [AuthGuard],
+    data: { roles: ['Admin', 'ClinicalTrialManager', 'RegulatoryOfficer', 'DataManager'] }
+  },
+
+  // Documents — CTM, RegulatoryOfficer, DataManager, Investigator
+  {
+    path: 'documents',
+    loadComponent: () =>
+      import('./features/documents/documents.component')
+        .then(m => m.DocumentsComponent),
+    canActivate: [AuthGuard],
+    data: { roles: ['Admin', 'ClinicalTrialManager', 'RegulatoryOfficer', 'DataManager', 'Investigator'] }
+  },
+
+  // Compliance Dashboard — RegulatoryOfficer only
+  {
+    path: 'compliance-dashboard',
+    loadComponent: () =>
+      import('./features/compliance-dashboard/compliance-dashboard.component')
+      .then(m => m.ComplianceDashboardComponent),
+    canActivate: [AuthGuard],
+    data: { roles: ['RegulatoryOfficer'] }
   },
 
   // Defaults

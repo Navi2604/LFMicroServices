@@ -26,43 +26,58 @@
         <form (ngSubmit)="onSubmit()">
           <div class="lt-form-row">
             <div class="lt-form-group">
-              <label class="lt-form-label">Full Name</label>
+              <label class="lt-form-label">Full Name *</label>
               <input class="lt-form-control" type="text"
                      [(ngModel)]="form.name" name="name"
-                     placeholder="Your full name" />
+                     placeholder="Your full name"
+                     required
+                     minlength="2" />
             </div>
             <div class="lt-form-group">
-              <label class="lt-form-label">Email</label>
+              <label class="lt-form-label">Email *</label>
               <input class="lt-form-control" type="email"
                      [(ngModel)]="form.email" name="email"
-                     placeholder="your@email.com" />
+                     placeholder="your@email.com"
+                     required />
             </div>
           </div>
           <div class="lt-form-row">
             <div class="lt-form-group">
-              <label class="lt-form-label">Date of Birth</label>
+              <label class="lt-form-label">Date of Birth *</label>
               <input class="lt-form-control" type="date"
-                     [(ngModel)]="form.dob" name="dob" />
+                     [(ngModel)]="form.dob" name="dob"
+                     required />
             </div>
             <div class="lt-form-group">
-              <label class="lt-form-label">Contact Info</label>
+              <label class="lt-form-label">Contact Number * (10 digits)</label>
               <input class="lt-form-control" type="text"
                      [(ngModel)]="form.contactInfo" name="contactInfo"
-                     placeholder="Phone or address" />
+                     placeholder="9876543210"
+                     maxlength="10"
+                     pattern="[0-9]{10}"
+                     (keypress)="onlyNumbers($event)"
+                     (paste)="onPasteContact($event)"
+                     required />
             </div>
           </div>
           <div class="lt-form-row">
             <div class="lt-form-group">
-              <label class="lt-form-label">Password</label>
+              <label class="lt-form-label">Password *</label>
               <input class="lt-form-control" type="password"
                      [(ngModel)]="form.password" name="password"
-                     placeholder="Min 8 characters" />
+                     placeholder="Min 8 characters"
+                     required
+                     minlength="8" />
+              <small style="font-size:11px; color:#888; display:block; margin-top:4px;">
+                Must include: uppercase, lowercase, number, special character
+              </small>
             </div>
             <div class="lt-form-group">
-              <label class="lt-form-label">Confirm Password</label>
+              <label class="lt-form-label">Confirm Password *</label>
               <input class="lt-form-control" type="password"
                      [(ngModel)]="form.confirmPassword" name="confirmPassword"
-                     placeholder="Repeat password" />
+                     placeholder="Repeat password"
+                     required />
             </div>
           </div>
           <button type="submit" class="lt-btn lt-btn-primary"

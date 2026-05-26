@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // PatientService.API / Services / Interfaces / IPatientService.cs
+// DELETE METHOD REMOVED — Updated
 // ============================================================
 
 using LifeTrack.PatientService.DTOs;
@@ -12,6 +13,6 @@ namespace LifeTrack.PatientService.Services.Interfaces
         Task<ApiResponse<List<PatientDto>>> GetAllAsync(PatientFilterDto filter);
         Task<ApiResponse<PatientDto>> GetByIdAsync(long id);
         Task<ApiResponse<PatientDto>> CreateAsync(CreatePatientRequest req);
-        Task<ApiResponse<bool>> DeleteAsync(long id);
+        // ❌ DELETE REMOVED
     }
 }

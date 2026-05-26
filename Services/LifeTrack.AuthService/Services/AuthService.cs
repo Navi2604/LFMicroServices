@@ -1,10 +1,12 @@
 ﻿// ============================================================
 // AuthService.API / Services / AuthService.cs
+// WITH SAFE AUDIT LOGGING (won't crash if audit fails)
 // ============================================================
 
 using LifeTrack.AuthService.DTOs;
 using LifeTrack.AuthService.Repositories.Interfaces;
 using LifeTrack.AuthService.Services.Interfaces;
+using LifeTrack.Shared.Helpers;
 using LifeTrack.Shared.Models;
 using LifeTrack.Shared.Wrappers;
 using Microsoft.Extensions.Configuration;
@@ -19,11 +21,13 @@ namespace LifeTrack.AuthService.Services
     {
         private readonly IAuthRepository _repo;
         private readonly IConfiguration _config;
+        private readonly AuditHttpClient? _audit;
 
-        public AuthService(IAuthRepository repo, IConfiguration config)
+        public AuthService(IAuthRepository repo, IConfiguration config, AuditHttpClient? audit = null)
         {
             _repo = repo;
             _config = config;
+            _audit = audit;
         }
 
         public async Task<ApiResponse<LoginResponse>> LoginAsync(LoginRequest req)
@@ -41,6 +45,15 @@ namespace LifeTrack.AuthService.Services
             var roleName = user.Role?.RoleName ?? "Unknown";
             var token = GenerateToken(user.UserID, user.Name, user.Email, roleName);
             var expiry = DateTime.UtcNow.AddHours(8);
+
+            // ✅ LOG LOGIN AUDIT (safe - won't crash if audit service is down)
+            try
+            {
+                _audit?.Log("LOGIN", "User", user.UserID,
+                    $"User '{user.Name}' ({user.Email}) logged in as {roleName}.",
+                    user.UserID);
+            }
+            catch { /* Ignore audit failures */ }
 
             return ApiResponse<LoginResponse>.Ok(new LoginResponse
             {
@@ -65,6 +78,15 @@ namespace LifeTrack.AuthService.Services
             var token = GenerateToken(patient.PatientID, patient.Name, patient.Email, "Patient");
             var expiry = DateTime.UtcNow.AddHours(8);
 
+            // ✅ LOG LOGIN AUDIT (safe)
+            try
+            {
+                _audit?.Log("LOGIN", "Patient", patient.PatientID,
+                    $"Patient '{patient.Name}' ({patient.Email}) logged in.",
+                    patient.PatientID);
+            }
+            catch { /* Ignore audit failures */ }
+
             return ApiResponse<LoginResponse>.Ok(new LoginResponse
             {
                 Token = token,
@@ -78,10 +100,32 @@ namespace LifeTrack.AuthService.Services
 
         public async Task<ApiResponse<bool>> RegisterPatientAsync(RegisterPatientRequest req)
         {
+            // ✅ VALIDATION 1: Email uniqueness
             var existing = await _repo.GetPatientByEmailAsync(req.Email);
             if (existing != null)
                 return ApiResponse<bool>.Fail("Email already registered.");
 
+            // ✅ VALIDATION 2: Password strength
+            if (!IsPasswordStrong(req.Password))
+            {
+                return ApiResponse<bool>.Fail(
+                    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
+            }
+
+            // ✅ VALIDATION 3: Age validation
+            var age = DateTime.UtcNow.Year - req.DOB.Year;
+            if (req.DOB > DateTime.UtcNow.AddYears(-age)) age--;
+
+            if (req.DOB > DateTime.UtcNow)
+                return ApiResponse<bool>.Fail("Date of birth cannot be in the future.");
+
+            if (age < 18)
+                return ApiResponse<bool>.Fail("You must be at least 18 years old to register.");
+
+            if (age > 120)
+                return ApiResponse<bool>.Fail("Please enter a valid date of birth.");
+
+            // ✅ All validations passed - create patient
             var patient = new Patient
             {
                 Name = req.Name,
@@ -92,18 +136,36 @@ namespace LifeTrack.AuthService.Services
             };
 
             await _repo.CreatePatientAsync(patient);
+
+            // ✅ LOG REGISTRATION AUDIT (safe)
+            try
+            {
+                _audit?.Log("CREATE", "Patient", patient.PatientID,
+                    $"Patient '{patient.Name}' ({patient.Email}) registered.");
+            }
+            catch { /* Ignore audit failures */ }
+
             return ApiResponse<bool>.Ok(true, "Registration successful. You can now log in.");
         }
 
         public async Task<ApiResponse<bool>> CreateStaffAsync(CreateStaffRequest req)
         {
+            // ✅ VALIDATION 1: Email uniqueness
             var existing = await _repo.GetUserByEmailAsync(req.Email);
             if (existing != null)
                 return ApiResponse<bool>.Fail("Email already in use.");
 
+            // ✅ VALIDATION 2: Valid role
             var role = await _repo.GetRoleByIdAsync(req.RoleID);
             if (role == null)
                 return ApiResponse<bool>.Fail("Invalid role selected.");
+
+            // ✅ VALIDATION 3: Password strength
+            if (!IsPasswordStrong(req.Password))
+            {
+                return ApiResponse<bool>.Fail(
+                    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
+            }
 
             // Investigators start inactive — activated when assigned to a site-protocol
             // All other staff start active
@@ -120,7 +182,27 @@ namespace LifeTrack.AuthService.Services
             };
 
             await _repo.CreateUserAsync(user);
+
+            // ✅ LOG USER CREATION AUDIT (safe)
+            try
+            {
+                _audit?.Log("CREATE", "User", user.UserID,
+                    $"Staff user '{user.Name}' ({user.Email}) created with role {role.RoleName}.");
+            }
+            catch { /* Ignore audit failures */ }
+
             return ApiResponse<bool>.Ok(true, $"Staff user '{req.Name}' created successfully.");
+        }
+
+        // ✅ PASSWORD STRENGTH VALIDATOR
+        private bool IsPasswordStrong(string password)
+        {
+            if (password.Length < 8) return false;
+            if (!password.Any(char.IsUpper)) return false;           // At least one uppercase
+            if (!password.Any(char.IsLower)) return false;           // At least one lowercase  
+            if (!password.Any(char.IsDigit)) return false;           // At least one digit
+            if (!password.Any(ch => "!@#$%^&*()_+-=[]{}|;:,.<>?".Contains(ch))) return false;  // Special char
+            return true;
         }
 
         private string GenerateToken(long id, string name, string email, string role)

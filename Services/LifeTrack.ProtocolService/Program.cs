@@ -1,5 +1,6 @@
 // ============================================================
 // ProtocolService.API / Program.cs
+// ADDED: DocumentService + DocumentRepository registration
 // ============================================================
 
 using LifeTrack.ProtocolService.Repositories;
@@ -19,6 +20,8 @@ builder.Services.AddDbContext<LifeTrackDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddMemoryCache();
+
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<GlobalExceptionFilter>();
@@ -35,13 +38,21 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<GlobalExceptionFilter>();
 builder.Services.AddScoped<ValidationFilter>();
 
+// Repositories & Services
 builder.Services.AddScoped<IProtocolRepository, ProtocolRepository>();
 builder.Services.AddScoped<IProtocolService, ProtocolService>();
 builder.Services.AddScoped<IKPIReportRepository, KPIReportRepository>();
 builder.Services.AddScoped<IKPIReportService, KPIReportService>();
+// NEW: Documents
+builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient<AuditHttpClient>();
+builder.Services.AddHttpClient<AuditHttpClient>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5008/");
+    client.Timeout = TimeSpan.FromSeconds(3);
+});
 
 builder.Services.AddCors(options =>
     options.AddPolicy("AllowAngular", policy =>

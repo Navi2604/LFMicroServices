@@ -28,15 +28,24 @@ export class SitesComponent implements OnInit {
   activeTab      = 'All';
   private userId = 0;
 
+  // ✅ Pagination
+  currentPage = 1;
+  pageSize = 10;
+  totalItems = 0;
+  totalPages = 0;
+  jumpToPage = 1;
+  itemsPerPageOptions = [10, 20, 50];
+  paginatedFiltered: SiteDto[] = [];
+
   // Create modal
   showCreate = false;
-  createForm = { name: '', location: '', status: 'Active' };
+  createForm = { name: '', location: '', email: '', contact: '', status: 'Active' };
   createError = '';
 
   // Edit modal
   showEdit    = false;
   editSite:   SiteDto | null = null;
-  editForm    = { name: '', location: '', status: 'Active' };
+  editForm    = { name: '', location: '', email: '', contact: '', status: 'Active' };
   editError   = '';
 
   // View modal
@@ -98,6 +107,7 @@ export class SitesComponent implements OnInit {
     this.filtered = this.activeTab === 'All'
       ? [...this.sites]
       : this.sites.filter(s => s.status === this.activeTab);
+    this.calculateTotalPages(); // ✅ NEW
     this.cdr.detectChanges();
   }
 
@@ -106,7 +116,7 @@ export class SitesComponent implements OnInit {
   }
 
   // ── Create ──────────────────────────────────────────────────
-  openCreate(): void { this.createForm = { name: '', location: '', status: 'Active' }; this.createError = ''; this.showCreate = true; }
+  openCreate(): void { this.createForm = { name: '', location: '', email: '', contact: '', status: 'Active' }; this.createError = ''; this.showCreate = true; }
 
   create(): void {
     if (!this.createForm.name.trim() || !this.createForm.location.trim()) {
@@ -127,7 +137,7 @@ export class SitesComponent implements OnInit {
   // ── Edit ────────────────────────────────────────────────────
   openEdit(s: SiteDto): void {
     this.editSite  = s;
-    this.editForm  = { name: s.name, location: s.location, status: s.status };
+    this.editForm  = { name: s.name, location: s.location, email: s.email || '', contact: s.contact || '', status: s.status };
     this.editError = '';
     this.showEdit  = true;
   }
@@ -146,18 +156,6 @@ export class SitesComponent implements OnInit {
         } else { this.editError = r.message; }
       },
       error: err => { this.editError = err.error?.message ?? 'Failed.'; }
-    });
-  }
-
-  deleteSite(): void {
-    if (!this.editSite) return;
-    if (!confirm(`Delete site "${this.editSite.name}"? This cannot be undone.`)) return;
-    this.siteApi.delete(this.editSite.siteID).subscribe(r => {
-      if (r.success) {
-        this.showEdit = false;
-        this.showMsg('success', 'Site deleted.');
-        this.load();
-      } else { this.editError = r.message; }
     });
   }
 
@@ -209,5 +207,83 @@ export class SitesComponent implements OnInit {
     if (type === 'success') { this.successMsg = msg; this.errorMsg = ''; }
     else { this.errorMsg = msg; this.successMsg = ''; }
     setTimeout(() => { this.successMsg = ''; this.errorMsg = ''; this.cdr.detectChanges(); }, 3000);
+  }
+
+  // ✅ Pagination methods
+  calculateTotalPages(): void {
+    this.totalItems = this.filtered.length;
+    this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+    this.currentPage = 1;
+    this.applyPagination();
+  }
+
+  applyPagination(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    this.paginatedFiltered = this.filtered.slice(start, end);
+    this.cdr.detectChanges();
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.applyPagination();
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.applyPagination();
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.applyPagination();
+    }
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.calculateTotalPages();
+  }
+
+  getPaginationButtons(): number[] {
+    const buttons: number[] = [];
+    const maxButtons = 10;
+    const startPage = Math.max(1, this.currentPage - 4);
+    const endPage = Math.min(this.totalPages, startPage + maxButtons - 1);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      buttons.push(i);
+    }
+    
+    return buttons;
+  }
+
+  // ✅ Validation: Only allow numbers in Contact field
+  onlyNumbers(event: KeyboardEvent): boolean {
+    const charCode = event.which ? event.which : event.keyCode;
+    if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+      event.preventDefault();
+      return false;
+    }
+    return true;
+  }
+
+  // ✅ Validation: Strip non-numbers on paste
+  onPaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    const pastedText = event.clipboardData?.getData('text') || '';
+    const numbersOnly = pastedText.replace(/[^0-9]/g, '').substring(0, 10);
+    
+    // Update the appropriate form
+    if (this.showCreate) {
+      this.createForm.contact = numbersOnly;
+    } else if (this.showEdit) {
+      this.editForm.contact = numbersOnly;
+    }
   }
 }

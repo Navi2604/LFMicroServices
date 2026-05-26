@@ -43,13 +43,13 @@ namespace LifeTrack.SiteService.Services
             return ApiResponse<DeviationDto>.Ok(d, "Deviation reported successfully.");
         }
 
-        public async Task<ApiResponse<bool>> UpdateStatusAsync(long id, string status)
+        public async Task<ApiResponse<bool>> UpdateStatusAsync(long id, string status, string updaterRole)
         {
-            var updated = await _repo.UpdateStatusAsync(id, status);
+            var updated = await _repo.UpdateStatusAsync(id, status, updaterRole);
 
             if (updated)
                 _audit.Log("UPDATE", "Deviation", id,
-                    $"Deviation status updated to '{status}'.");
+                    $"Deviation status updated to '{status}' by role '{updaterRole}'.");
 
             return updated
                 ? ApiResponse<bool>.Ok(true, "Status updated successfully.")

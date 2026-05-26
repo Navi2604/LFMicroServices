@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // AuditService.API / Services / AuditService.cs
+// WITH CACHING READY — No changes needed
 // ============================================================
 
 using LifeTrack.AuditService.DTOs;

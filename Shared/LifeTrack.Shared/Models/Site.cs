@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // Shared.CL / Models / Site.cs
+// WITH EMAIL AND CONTACT FIELDS
 // ============================================================
 
 using System.ComponentModel.DataAnnotations;
@@ -19,6 +20,12 @@ namespace LifeTrack.Shared.Models
 
         [MaxLength(200)]
         public string Location { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? Email { get; set; }
+
+        [MaxLength(50)]
+        public string? Contact { get; set; }
 
         [MaxLength(50)]
         public string Status { get; set; } = string.Empty;

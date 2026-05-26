@@ -1,5 +1,5 @@
 // ============================================================
-// AuditService.API / Program.cs
+// AuditService.API / Program.cs — WITH CACHING
 // ============================================================
 
 using LifeTrack.AuditService.Repositories;
@@ -18,6 +18,9 @@ builder.Services.AddDbContext<AuditDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("AuditConnection")));
 
+// ✅ ADD MEMORY CACHE
+builder.Services.AddMemoryCache();
+
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<GlobalExceptionFilter>();
@@ -34,6 +37,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<GlobalExceptionFilter>();
 builder.Services.AddScoped<ValidationFilter>();
 
+// ✅ REGISTER REPOSITORIES & SERVICES WITH CACHE
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 

@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // ProtocolService.API / Services / Interfaces / IProtocolService.cs
+// ADDED: UnarchiveAsync
 // ============================================================
 
 using LifeTrack.ProtocolService.DTOs;
@@ -14,6 +15,7 @@ namespace LifeTrack.ProtocolService.Services.Interfaces
         Task<ApiResponse<ProtocolDto>> CreateAsync(CreateProtocolRequest req);
         Task<ApiResponse<bool>> UpdateAsync(long id, UpdateProtocolRequest req);
         Task<ApiResponse<bool>> ArchiveAsync(long id);
+        Task<ApiResponse<bool>> UnarchiveAsync(long id);  // restores Archived → computed status
         Task<ApiResponse<bool>> DeleteAsync(long id);
     }
 }

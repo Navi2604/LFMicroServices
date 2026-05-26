@@ -34,6 +34,15 @@ export class PatientsComponent implements OnInit {
   activeTab      = 'all';    // all | mine
   statusTab      = 'All';    // All | Active | Completed | Withdrawn
 
+  // ✅ Pagination
+  currentPage = 1;
+  pageSize = 10;
+  totalItems = 0;
+  totalPages = 0;
+  jumpToPage = 1;
+  itemsPerPageOptions = [10, 20, 50];
+  paginatedFiltered: PatientDto[] = [];
+
   enrolledPatientIds = new Set<number>();
   patientStatusMap    = new Map<number, string>();
   patientProtocolMap  = new Map<number, string>();
@@ -152,6 +161,7 @@ export class PatientsComponent implements OnInit {
                   });
                   this.myPatients = this.allPatients.filter(p => myPatientIds.has(p.patientID));
                   this.isLoading  = false;
+                  this.buildSiteProtocolGroups();
                   this.applyAllFilters();
                   this.cdr.detectChanges();
                 });
@@ -189,6 +199,16 @@ export class PatientsComponent implements OnInit {
 
   applyAllFilters(): void {
     let source = this.activeTab === 'mine' ? this.myPatients : this.allPatients;
+    
+    // ✅ NEW: For "all" tab - exclude Active patients from the entire list
+    if (this.activeTab === 'all') {
+      source = source.filter(p => {
+        const status = this.getPatientStatus(p);
+        // Hide Active patients, show everything else: Not Enrolled, Pending, Completed, Withdrawn
+        return status !== 'Active';
+      });
+    }
+    
     // Status tab filter
     if (this.statusTab === '') {
       source = source.filter(p => !this.getPatientStatus(p));
@@ -204,13 +224,27 @@ export class PatientsComponent implements OnInit {
           (this.getPatientProtocol(p) || '').toLowerCase().includes(q)
         )
       : [...source];
+    this.calculateTotalPages(); // ✅ NEW
     this.cdr.detectChanges();
   }
 
   countByStatus(status: string): number {
-    const source = this.activeTab === 'mine' ? this.myPatients : this.allPatients;
+    let source = this.activeTab === 'mine' ? this.myPatients : this.allPatients;
+    
+    // ✅ NEW: For "all" tab - exclude Active patients
+    if (this.activeTab === 'all') {
+      source = source.filter(p => this.getPatientStatus(p) !== 'Active');
+    }
+    
     if (status === 'All') return source.length;
     if (status === '') return source.filter(p => !this.getPatientStatus(p)).length;
+    if (status === 'Pending') return source.filter(p => this.getPatientStatus(p) === 'Pending').length;
+    if (status === 'Re-enroll') {
+      return source.filter(p => {
+        const s = this.getPatientStatus(p);
+        return s === 'Completed' || s === 'Withdrawn';
+      }).length;
+    }
     return source.filter(p => this.getPatientStatus(p) === status).length;
   }
 
@@ -230,6 +264,86 @@ export class PatientsComponent implements OnInit {
   canEnrollPatient(p: PatientDto): boolean {
     const status = this.getPatientStatus(p);
     return !status || status === 'Withdrawn';
+  }
+
+  // ── Site-protocol groups for Investigator My Patients ───────
+  siteProtocolGroups: any[] = [];
+  expandedGroupIds = new Set<number>();
+  groupSearchTerm: Map<number, string> = new Map();
+  groupStatusTab:  Map<number, string> = new Map();
+
+  buildSiteProtocolGroups(): void {
+    if (!this.isInvestigator) return;
+    this.siteProtocolApi.getAll({ investigatorID: this.userId }).subscribe(sp => {
+      if (!sp.success) return;
+      this.siteProtocolGroups = sp.data.map((s: any) => ({
+        siteProtocolID: s.siteProtocolID,
+        protocolTitle:  s.protocolTitle,
+        siteName:       s.siteName,
+        status:         s.protocolStatus || s.status || '',
+        patients:       [] as PatientDto[]
+      }));
+      this.siteProtocolGroups.forEach(g => {
+        this.groupSearchTerm.set(g.siteProtocolID, '');
+        this.groupStatusTab.set(g.siteProtocolID, 'All');
+      });
+      this.enrollmentApi.getAll().subscribe(er => {
+        if (!er.success) return;
+        this.siteProtocolGroups.forEach(g => {
+          const enrolledIds = er.data
+            .filter((e: any) => e.siteProtocolID === g.siteProtocolID)
+            .map((e: any) => e.patientID);
+          g.patients = this.myPatients.filter((p: PatientDto) => enrolledIds.includes(p.patientID));
+        });
+        this.cdr.detectChanges();
+      });
+    });
+  }
+
+  toggleProtocolGroup(id: number): void {
+    if (this.expandedGroupIds.has(id)) this.expandedGroupIds.delete(id);
+    else this.expandedGroupIds.add(id);
+    this.cdr.detectChanges();
+  }
+
+  isGroupExpanded(id: number): boolean {
+    return this.expandedGroupIds.has(id);
+  }
+
+  getGroupSearch(id: number): string {
+    return this.groupSearchTerm.get(id) ?? '';
+  }
+
+  setGroupSearch(id: number, val: string): void {
+    this.groupSearchTerm.set(id, val);
+    this.cdr.detectChanges();
+  }
+
+  getGroupStatus(id: number): string {
+    return this.groupStatusTab.get(id) ?? 'All';
+  }
+
+  setGroupStatus(id: number, status: string): void {
+    this.groupStatusTab.set(id, status);
+    this.cdr.detectChanges();
+  }
+
+  getFilteredGroupPatients(g: any): PatientDto[] {
+    const search = (this.groupSearchTerm.get(g.siteProtocolID) ?? '').toLowerCase();
+    const status = this.groupStatusTab.get(g.siteProtocolID) ?? 'All';
+    return g.patients.filter((p: PatientDto) => {
+      const s = this.getPatientStatus(p);
+      const statusMatch = status === 'All' || s === status;
+      const searchMatch = !search ||
+        p.name.toLowerCase().includes(search) ||
+        p.email.toLowerCase().includes(search);
+      return statusMatch && searchMatch;
+    });
+  }
+
+  countGroupByStatus(g: any, status: string): number {
+    if (status === 'All') return g.patients.length;
+    return g.patients.filter((p: PatientDto) => this.getPatientStatus(p) === status).length;
   }
 
   // ── View modal ──────────────────────────────────────────────
@@ -379,5 +493,59 @@ export class PatientsComponent implements OnInit {
       'PendingWithdrawal':'lt-badge-red'
     };
     return map[status] ?? 'lt-badge-gray';
+  }
+
+  // ✅ Pagination methods
+  calculateTotalPages(): void {
+    this.totalItems = this.filtered.length;
+    this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+    this.currentPage = 1;
+    this.applyPagination();
+  }
+
+  applyPagination(): void {
+    const start = (this.currentPage - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    this.paginatedFiltered = this.filtered.slice(start, end);
+    this.cdr.detectChanges();
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.applyPagination();
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.applyPagination();
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.applyPagination();
+    }
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.calculateTotalPages();
+  }
+
+  getPaginationButtons(): number[] {
+    const buttons: number[] = [];
+    const maxButtons = 10;
+    const startPage = Math.max(1, this.currentPage - 4);
+    const endPage = Math.min(this.totalPages, startPage + maxButtons - 1);
+    
+    for (let i = startPage; i <= endPage; i++) {
+      buttons.push(i);
+    }
+    
+    return buttons;
   }
 }

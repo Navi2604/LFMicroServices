@@ -3,7 +3,6 @@
   <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
 
   <div class="lt-main">
-
     <div class="lt-topbar">
       <div class="lt-breadcrumb">
         <a routerLink="/dashboard">LifeTrack</a>
@@ -11,45 +10,42 @@
         <span class="current">Manage Users</span>
       </div>
       <div class="lt-topbar-right">
-        <button class="lt-btn lt-btn-primary" (click)="openCreate()">
-          + Add User
-        </button>
+        <button class="lt-btn lt-btn-primary" (click)="openCreate()">+ Add User</button>
       </div>
     </div>
 
     <div class="lt-content">
-
       <div class="lt-page-header">
         <div class="lt-page-title">Manage Users</div>
       </div>
 
-      <div class="lt-alert lt-alert-success" *ngIf="successMsg">{{ successMsg }}</div>
-      <div class="lt-alert lt-alert-error"   *ngIf="errorMsg">{{ errorMsg }}</div>
+      <div class="lt-alert lt-alert-success" *ngIf="successMsg">✅ {{ successMsg }}</div>
+      <div class="lt-alert lt-alert-error"   *ngIf="errorMsg">⚠️ {{ errorMsg }}</div>
 
       <!-- Role filter tabs -->
       <div class="lt-filter-tabs">
-        <button class="lt-filter-tab" [class.active]="activeTab === 'All'"
-                (click)="setTab('All')">
+        <button class="lt-filter-tab" [class.active]="activeTab==='All'"
+          (click)="setTab('All')">
           <span class="tab-count">{{ users.length }}</span> All Staff
         </button>
-        <button class="lt-filter-tab" [class.active]="activeTab === 'Admin'"
-                (click)="setTab('Admin')">
+        <button class="lt-filter-tab" [class.active]="activeTab==='Admin'"
+          (click)="setTab('Admin')">
           <span class="tab-count">{{ countByRole('Admin') }}</span> Admin
         </button>
-        <button class="lt-filter-tab" [class.active]="activeTab === 'ClinicalTrialManager'"
-                (click)="setTab('ClinicalTrialManager')">
+        <button class="lt-filter-tab" [class.active]="activeTab==='ClinicalTrialManager'"
+          (click)="setTab('ClinicalTrialManager')">
           <span class="tab-count">{{ countByRole('ClinicalTrialManager') }}</span> Clinical Trial Manager
         </button>
-        <button class="lt-filter-tab" [class.active]="activeTab === 'Investigator'"
-                (click)="setTab('Investigator')">
+        <button class="lt-filter-tab" [class.active]="activeTab==='Investigator'"
+          (click)="setTab('Investigator')">
           <span class="tab-count">{{ countByRole('Investigator') }}</span> Investigator
         </button>
-        <button class="lt-filter-tab" [class.active]="activeTab === 'RegulatoryOfficer'"
-                (click)="setTab('RegulatoryOfficer')">
+        <button class="lt-filter-tab" [class.active]="activeTab==='RegulatoryOfficer'"
+          (click)="setTab('RegulatoryOfficer')">
           <span class="tab-count">{{ countByRole('RegulatoryOfficer') }}</span> Regulatory Officer
         </button>
-        <button class="lt-filter-tab" [class.active]="activeTab === 'DataManager'"
-                (click)="setTab('DataManager')">
+        <button class="lt-filter-tab" [class.active]="activeTab==='DataManager'"
+          (click)="setTab('DataManager')">
           <span class="tab-count">{{ countByRole('DataManager') }}</span> Data Manager
         </button>
       </div>
@@ -66,8 +62,7 @@
         <button class="lt-btn lt-btn-secondary" (click)="applyFilters()">Search</button>
       </div>
 
-      <!-- Count -->
-      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
         Showing <strong>{{ filtered.length }}</strong> user{{ filtered.length !== 1 ? 's' : '' }}
       </div>
 
@@ -75,6 +70,7 @@
         <span class="lt-spinner"></span> Loading users...
       </div>
 
+      <!-- Table -->
       <div class="lt-table-wrap" *ngIf="!isLoading">
         <table class="lt-table">
           <thead>
@@ -89,19 +85,18 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let u of filtered; let i = index">
-              <td class="cell-muted" style="font-size:12px;">{{ i + 1 }}</td>
+            <tr *ngFor="let u of paginated; let i = index">
+
+              <td class="cell-muted" style="font-size:12px;">
+                {{ (currentPage - 1) * pageSize + i + 1 }}
+              </td>
 
               <td style="font-weight:500;">
                 {{ u.name }}
-                <!-- Super Admin crown -->
-                <span *ngIf="u.userID === 20004"
-                      title="Super Admin"
-                      style="margin-left:4px; font-size:13px;">👑</span>
-                <!-- You indicator -->
                 <span *ngIf="u.userID === currentUserId"
-                      style="margin-left:4px; font-size:11px;
-                             color:var(--text-muted); font-style:italic;">(you)</span>
+                  style="margin-left:4px;font-size:11px;color:#aaa;font-style:italic;">(you)</span>
+                <span *ngIf="isSuperAdmin && u.userID === currentUserId"
+                  style="margin-left:4px;font-size:12px;" title="Super Admin">👑</span>
               </td>
 
               <td class="cell-muted">{{ u.email }}</td>
@@ -113,72 +108,110 @@
                 </span>
               </td>
 
-              <!-- Status — system-managed for Investigators, toggleable for others -->
+              <!-- ── Status column ───────────────────────── -->
               <td>
-                <!-- Investigator: status badge only, not clickable -->
-                <div *ngIf="u.roleName === 'Investigator'"
-                  class="lt-status-toggle"
-                  [class.active]="u.isActive"
-                  [class.inactive]="!u.isActive"
-                  style="cursor:default;pointer-events:none;"
-                  [title]="u.isActive ? 'Active — has assigned protocols' : 'Inactive — no protocol assigned'">
-                  <span class="status-dot"></span>
-                  {{ u.isActive ? 'Active' : 'Inactive' }}
-                  <span style="font-size:10px;color:#aaa;margin-left:4px;">auto</span>
-                </div>
-                <!-- Other roles: clickable toggle -->
-                <button *ngIf="u.roleName !== 'Investigator'"
-                  class="lt-status-toggle"
-                  [class.active]="u.isActive"
-                  [class.inactive]="!u.isActive"
-                  [disabled]="!canToggle(u)"
-                  (click)="toggleUser(u)"
-                  [title]="canToggle(u) ? (u.isActive ? 'Click to deactivate' : 'Click to activate') : 'Cannot change status'">
-                  <span class="status-dot"></span>
-                  {{ u.isActive ? 'Active' : 'Inactive' }}
-                  <span class="status-hint" *ngIf="canToggle(u)">
-                    {{ u.isActive ? '→ Deactivate' : '→ Activate' }}
+                <!-- Investigator: read-only pill with lock -->
+                <ng-container *ngIf="u.roleName === 'Investigator'; else otherStatus">
+                  <span
+                    [title]="toggleTooltip(u)"
+                    style="display:inline-flex;align-items:center;gap:5px;
+                           padding:5px 12px;border-radius:20px;font-size:12px;
+                           font-weight:600;cursor:default;user-select:none;"
+                    [style.background]="u.isActive ? '#e6f4ea' : '#fce8e6'"
+                    [style.color]="u.isActive ? '#1e7e34' : '#c0392b'">
+                    <span style="width:7px;height:7px;border-radius:50%;display:inline-block;"
+                          [style.background]="u.isActive ? '#22c55e' : '#ef4444'"></span>
+                    {{ u.isActive ? 'Active' : 'Inactive' }}
+                    <span style="font-size:10px;opacity:0.55;">🔒</span>
                   </span>
+                </ng-container>
+
+                <!-- All other roles: clickable toggle -->
+                <ng-template #otherStatus>
+                  <button
+                    class="lt-status-toggle"
+                    [class.active]="u.isActive"
+                    [class.inactive]="!u.isActive"
+                    [disabled]="!canToggle(u)"
+                    (click)="toggleUser(u)"
+                    [title]="toggleTooltip(u)">
+                    <span class="status-dot"></span>
+                    {{ u.isActive ? 'Active' : 'Inactive' }}
+                    <span class="status-hint" *ngIf="canToggle(u)">
+                      {{ u.isActive ? '→ Deactivate' : '→ Activate' }}
+                    </span>
+                  </button>
+                </ng-template>
+              </td>
+
+              <!-- ── Actions ─────────────────────────────── -->
+              <td>
+                <button
+                  class="lt-btn lt-btn-secondary lt-btn-sm"
+                  (click)="openEdit(u)"
+                  [disabled]="!canEdit(u)"
+                  [title]="editTooltip(u)"
+                  [style.opacity]="canEdit(u) ? '1' : '0.38'"
+                  [style.cursor]="canEdit(u) ? 'pointer' : 'not-allowed'">
+                  Edit
                 </button>
               </td>
 
-              <!-- Actions -->
-              <td>
-                <div style="display:flex; gap:6px; align-items:center;">
-                  <!-- Edit always visible -->
-                  <button class="lt-btn lt-btn-secondary lt-btn-sm"
-                          (click)="openEdit(u)">
-                    Edit
-                  </button>
-
-                  <!-- Delete — only when inactive AND permission allows -->
-                  <button class="lt-btn lt-btn-danger lt-btn-sm"
-                          *ngIf="canDelete(u)"
-                          (click)="deleteUser(u)">
-                    Delete
-                  </button>
-
-                  <!-- Greyed hint when active (not for investigators) -->
-                  <span *ngIf="u.isActive && canToggle(u) && u.roleName !== 'Investigator'"
-                        style="font-size:11px; color:var(--text-muted); white-space:nowrap;">
-                    Deactivate first
-                  </span>
-                </div>
-              </td>
-
             </tr>
-            <tr *ngIf="filtered.length === 0">
+
+            <tr *ngIf="paginated.length === 0 && !isLoading">
               <td colspan="7" class="cell-empty">No users found.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-    </div>
-  </div>
-</div>
+      <!-- Pagination — inside lt-content, below the table -->
+      <div *ngIf="!isLoading && totalPages > 1"
+           style="display:flex;align-items:center;justify-content:space-between;
+                  margin-top:16px;padding:14px 16px;background:#f9fafb;
+                  border:1px solid #e5e7eb;border-radius:10px;flex-wrap:wrap;gap:10px;">
 
-<!-- Add / Edit Modal -->
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;">
+          <label>Per page:</label>
+          <select [(ngModel)]="pageSize" (change)="changePageSize(pageSize)"
+                  style="padding:5px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:13px;">
+            <option *ngFor="let s of itemsPerPageOptions" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+
+        <div style="font-size:13px;color:#666;font-weight:500;">
+          Page {{ currentPage }} of {{ totalPages }} · {{ filtered.length }} total
+        </div>
+
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button (click)="prevPage()" [disabled]="currentPage === 1"
+                  style="padding:5px 10px;border:1px solid #dde1f0;border-radius:6px;
+                         background:#fff;cursor:pointer;font-size:12px;"
+                  [style.opacity]="currentPage === 1 ? '0.4' : '1'">← Prev</button>
+
+          <button *ngFor="let p of getPageNumbers()" (click)="goToPage(p)"
+                  style="padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;"
+                  [style.background]="p === currentPage ? '#1a3a8f' : '#fff'"
+                  [style.color]="p === currentPage ? '#fff' : '#555'"
+                  [style.border]="p === currentPage ? '1px solid #1a3a8f' : '1px solid #dde1f0'">
+            {{ p }}
+          </button>
+
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages"
+                  style="padding:5px 10px;border:1px solid #dde1f0;border-radius:6px;
+                         background:#fff;cursor:pointer;font-size:12px;"
+                  [style.opacity]="currentPage === totalPages ? '0.4' : '1'">Next →</button>
+        </div>
+
+      </div>
+      <!-- end pagination -->
+
+    </div><!-- lt-content -->
+  </div><!-- lt-main -->
+</div><!-- lt-page -->
+
+<!-- ── Add / Edit Modal ─────────────────────────────────── -->
 <div class="lt-modal-overlay" *ngIf="showModal">
   <div class="lt-modal">
     <div class="lt-modal-title">{{ editMode ? 'Edit User' : 'Add Staff User' }}</div>
@@ -188,39 +221,47 @@
 
     <div class="lt-alert lt-alert-error" *ngIf="modalError">{{ modalError }}</div>
 
+    <!--
+      Warning banner shown WHENEVER the selected role is Investigator (create or edit).
+      This makes clear to the admin what will happen before they save.
+    -->
+    <div *ngIf="+form.roleID === 3"
+         style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;
+                padding:10px 14px;font-size:12px;color:#7c5c00;margin-bottom:14px;
+                display:flex;gap:8px;align-items:flex-start;">
+      <span style="font-size:15px;flex-shrink:0;">⚠️</span>
+      <div>
+        <strong>Investigator role selected.</strong><br>
+        This user will be saved as <strong>Inactive</strong> regardless of any other setting.
+        They will become Active automatically once you assign them to a protocol site.
+        You cannot manually activate an Investigator.
+      </div>
+    </div>
+
     <div class="lt-form-row">
       <div class="lt-form-group">
-        <label class="lt-form-label">Full Name</label>
-        <input class="lt-form-control"
-               [(ngModel)]="form.name"
-               placeholder="e.g. Dr. Meera Iyer"
-               autocomplete="off" />
+        <label class="lt-form-label">Full Name *</label>
+        <input class="lt-form-control" [(ngModel)]="form.name"
+               placeholder="e.g. Dr. Meera Iyer" autocomplete="off" />
       </div>
       <div class="lt-form-group">
         <label class="lt-form-label">Phone</label>
-        <input class="lt-form-control"
-               [(ngModel)]="form.phone"
-               placeholder="10-digit number"
-               type="tel"
-               maxlength="10"
+        <input class="lt-form-control" [(ngModel)]="form.phone"
+               placeholder="10-digit number" type="tel" maxlength="10"
                (keypress)="$event.charCode >= 48 && $event.charCode <= 57 || $event.preventDefault()"
-               (input)="form.phone = form.phone.replace(/[^0-9]/g, '').slice(0,10)"
                autocomplete="off" />
-        <span style="font-size:11px;color:#aaa;margin-top:3px;display:block;">Numbers only, exactly 10 digits</span>
+        <span style="font-size:11px;color:#aaa;margin-top:3px;display:block;">Numbers only, 10 digits</span>
       </div>
     </div>
 
     <div class="lt-form-group">
-      <label class="lt-form-label">Email</label>
-      <input class="lt-form-control"
-             type="email"
-             [(ngModel)]="form.email"
-             placeholder="user@lifetrack.io"
-             autocomplete="off" />
+      <label class="lt-form-label">Email *</label>
+      <input class="lt-form-control" type="email" [(ngModel)]="form.email"
+             placeholder="user@lifetrack.io" autocomplete="off" />
     </div>
 
     <div class="lt-form-group">
-      <label class="lt-form-label">Role</label>
+      <label class="lt-form-label">Role *</label>
       <select class="lt-form-control" [(ngModel)]="form.roleID">
         <option value="0">Select a role</option>
         <option *ngFor="let r of roles" [value]="r.roleID">{{ r.roleName }}</option>
@@ -228,20 +269,16 @@
     </div>
 
     <div class="lt-form-group" *ngIf="!editMode">
-      <label class="lt-form-label">Password</label>
-      <input class="lt-form-control"
-             type="password"
-             [(ngModel)]="form.password"
-             placeholder="Min 8 characters"
-             autocomplete="new-password" />
+      <label class="lt-form-label">Password *</label>
+      <input class="lt-form-control" type="password" [(ngModel)]="form.password"
+             placeholder="Min 8 characters" autocomplete="new-password" />
     </div>
 
     <div class="lt-modal-footer">
       <button class="lt-btn lt-btn-ghost" (click)="closeModal()">Cancel</button>
       <button class="lt-btn lt-btn-primary" (click)="saveUser()" [disabled]="isSaving">
-        <span class="lt-spinner" style="width:13px;height:13px;border-width:2px;"
-              *ngIf="isSaving"></span>
-        {{ editMode ? 'Update User' : 'Create User' }}
+        <span class="lt-spinner" style="width:13px;height:13px;border-width:2px;" *ngIf="isSaving"></span>
+        {{ isSaving ? 'Saving...' : (editMode ? 'Update User' : 'Create User') }}
       </button>
     </div>
   </div>

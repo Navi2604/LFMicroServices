@@ -1,0 +1,244 @@
+<style>
+.cd-page-header{margin-bottom:24px;}
+.cd-greeting{font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:3px;}
+.cd-greeting-sub{font-size:13px;color:#888;}
+.cd-alert-banner{display:flex;align-items:center;gap:10px;background:#fff8e6;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#92400e;}
+.cd-alert-count{font-weight:700;font-size:15px;}
+.cd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;}
+.cd-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;}
+.cd-card-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;}
+.cd-card-left{display:flex;align-items:center;gap:10px;}
+.cd-card-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.cd-card-title{font-size:14px;font-weight:600;color:#1a1a2e;}
+.cd-card-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 8px;border-radius:20px;font-size:12px;font-weight:700;}
+.cd-card-body{padding:0 18px 4px;}
+.cd-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #f5f5f8;}
+.cd-row-left{flex:1;min-width:0;}
+.cd-row-name{font-size:13px;font-weight:500;color:#1a1a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cd-row-sub{font-size:11px;color:#aaa;margin-top:2px;}
+.cd-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;flex-shrink:0;margin-left:8px;}
+.cd-card-foot{padding:12px 18px;border-top:1px solid #f0f0f0;}
+.cd-viewall{font-size:12px;font-weight:500;color:#1a3a8f;text-decoration:none;}
+.cd-viewall:hover{text-decoration:underline;}
+.cd-empty{padding:16px 0;text-align:center;font-size:12px;color:#bbb;}
+.cd-loading{padding:16px 0;text-align:center;font-size:12px;color:#aaa;}
+.cd-audit-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid #f5f5f8;}
+.cd-audit-action{flex-shrink:0;}
+.cd-audit-detail{font-size:12px;color:#444;line-height:1.4;}
+.cd-audit-time{font-size:11px;color:#aaa;margin-top:2px;}
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <span class="current">LifeTrack</span>
+        <span class="sep">/</span>
+        <span class="current">Compliance Dashboard</span>
+      </div>
+      <div class="lt-topbar-right">
+        <button class="lt-notif-btn" routerLink="/notifications">
+          🔔<span class="dot" *ngIf="unreadCount > 0"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="lt-content">
+
+      <!-- Greeting -->
+      <div class="cd-page-header">
+        <div class="cd-greeting">Good day, {{ userName }} 👋</div>
+        <div class="cd-greeting-sub">Regulatory Officer — compliance overview</div>
+      </div>
+
+      <!-- Alert banner -->
+      <div class="cd-alert-banner" *ngIf="totalAlerts > 0">
+        ⚠️ You have
+        <span class="cd-alert-count">{{ totalAlerts }}</span>
+        item{{ totalAlerts === 1 ? '' : 's' }} requiring your attention.
+      </div>
+      <div class="cd-alert-banner"
+           style="background:#e6f4ea;border-color:#b7e0c2;color:#1e7e34;"
+           *ngIf="totalAlerts === 0 && !docsLoading && !aesLoading && !devsLoading">
+        ✅ All compliance items are up to date. Nothing requires immediate attention.
+      </div>
+
+      <!-- 2×2 dashboard grid -->
+      <div class="cd-grid">
+
+        <!-- ── Documents Pending Review ─────────────────────── -->
+        <div class="cd-card">
+          <div class="cd-card-head">
+            <div class="cd-card-left">
+              <div class="cd-card-icon" style="background:#fff8e6;">📄</div>
+              <div class="cd-card-title">Documents Pending Review</div>
+            </div>
+            <span class="cd-card-count"
+                  [style]="pendingDocs.length > 0
+                    ? 'background:#fef3e2;color:#b45309;'
+                    : 'background:#f3f4f6;color:#6b7280;'">
+              {{ pendingDocs.length }}
+            </span>
+          </div>
+          <div class="cd-card-body">
+            <div class="cd-loading" *ngIf="docsLoading">Loading…</div>
+            <ng-container *ngIf="!docsLoading">
+              <div *ngFor="let d of pendingDocs.slice(0, 3)" class="cd-row">
+                <div class="cd-row-left">
+                  <div class="cd-row-name">{{ d.title }}</div>
+                  <div class="cd-row-sub">{{ getDocTypelabel(d.type) }} · {{ d.version }} · {{ d.protocolTitle }}</div>
+                </div>
+                <span class="cd-pill" style="background:#fef3e2;color:#b45309;">
+                  Under Review
+                </span>
+              </div>
+              <div class="cd-empty"
+                   *ngIf="pendingDocs.length === 0">
+                No documents awaiting review.
+              </div>
+              <div class="cd-row" *ngIf="pendingDocs.length > 3"
+                   style="justify-content:center;border-top:none;">
+                <span style="font-size:12px;color:#aaa;">
+                  +{{ pendingDocs.length - 3 }} more
+                </span>
+              </div>
+            </ng-container>
+          </div>
+          <div class="cd-card-foot">
+            <a class="cd-viewall" routerLink="/documents">
+              View all documents →
+            </a>
+          </div>
+        </div>
+
+        <!-- ── Escalated Adverse Events ────────────────────── -->
+        <div class="cd-card">
+          <div class="cd-card-head">
+            <div class="cd-card-left">
+              <div class="cd-card-icon" style="background:#fce8e6;">⚠️</div>
+              <div class="cd-card-title">Escalated Adverse Events</div>
+            </div>
+            <span class="cd-card-count"
+                  [style]="escalatedAEs.length > 0
+                    ? 'background:#fce8e6;color:#c0392b;'
+                    : 'background:#f3f4f6;color:#6b7280;'">
+              {{ escalatedAEs.length }}
+            </span>
+          </div>
+          <div class="cd-card-body">
+            <div class="cd-loading" *ngIf="aesLoading">Loading…</div>
+            <ng-container *ngIf="!aesLoading">
+              <div *ngFor="let ae of escalatedAEs.slice(0, 3)" class="cd-row">
+                <div class="cd-row-left">
+                  <div class="cd-row-name">AE-{{ ae.eventID }} · {{ ae.patientName }}</div>
+                  <div class="cd-row-sub">{{ ae.reportedDate | date:'dd MMM yyyy' }}</div>
+                </div>
+                <span class="cd-pill" [style]="getAEBadgeStyle(ae.severity)">
+                  {{ ae.severity }}
+                </span>
+              </div>
+              <div class="cd-empty" *ngIf="escalatedAEs.length === 0">
+                No escalated adverse events.
+              </div>
+              <div class="cd-row" *ngIf="escalatedAEs.length > 3"
+                   style="justify-content:center;border-top:none;">
+                <span style="font-size:12px;color:#aaa;">
+                  +{{ escalatedAEs.length - 3 }} more
+                </span>
+              </div>
+            </ng-container>
+          </div>
+          <div class="cd-card-foot">
+            <a class="cd-viewall" routerLink="/adverse-events">
+              View all adverse events →
+            </a>
+          </div>
+        </div>
+
+        <!-- ── Critical Deviations ─────────────────────────── -->
+        <div class="cd-card">
+          <div class="cd-card-head">
+            <div class="cd-card-left">
+              <div class="cd-card-icon" style="background:#fff1e6;">📐</div>
+              <div class="cd-card-title">Open Critical Deviations</div>
+            </div>
+            <span class="cd-card-count"
+                  [style]="criticalDevs.length > 0
+                    ? 'background:#fff1e6;color:#c2410c;'
+                    : 'background:#f3f4f6;color:#6b7280;'">
+              {{ criticalDevs.length }}
+            </span>
+          </div>
+          <div class="cd-card-body">
+            <div class="cd-loading" *ngIf="devsLoading">Loading…</div>
+            <ng-container *ngIf="!devsLoading">
+              <div *ngFor="let d of criticalDevs.slice(0, 3)" class="cd-row">
+                <div class="cd-row-left">
+                  <div class="cd-row-name">DEV-{{ d.deviationID }}</div>
+                  <div class="cd-row-sub">Severity: Critical</div>
+                </div>
+                <span class="cd-pill" [style]="getDevBadgeStyle(d.status)">
+                  {{ d.status }}
+                </span>
+              </div>
+              <div class="cd-empty" *ngIf="criticalDevs.length === 0">
+                No open critical deviations.
+              </div>
+              <div class="cd-row" *ngIf="criticalDevs.length > 3"
+                   style="justify-content:center;border-top:none;">
+                <span style="font-size:12px;color:#aaa;">
+                  +{{ criticalDevs.length - 3 }} more
+                </span>
+              </div>
+            </ng-container>
+          </div>
+          <div class="cd-card-foot">
+            <a class="cd-viewall" routerLink="/deviations">
+              View all deviations →
+            </a>
+          </div>
+        </div>
+
+        <!-- ── Recent Audit Activity ───────────────────────── -->
+        <div class="cd-card">
+          <div class="cd-card-head">
+            <div class="cd-card-left">
+              <div class="cd-card-icon" style="background:#e8f0fe;">📋</div>
+              <div class="cd-card-title">Recent Audit Activity</div>
+            </div>
+          </div>
+          <div class="cd-card-body">
+            <div class="cd-loading" *ngIf="auditLoading">Loading…</div>
+            <ng-container *ngIf="!auditLoading">
+              <div *ngFor="let log of recentAudit" class="cd-audit-row">
+                <span class="cd-pill cd-audit-action"
+                      [style]="getAuditActionStyle(log.action)">
+                  {{ log.action }}
+                </span>
+                <div>
+                  <div class="cd-audit-detail">
+                    {{ log.details || (log.action + ' on ' + log.entityType) }}
+                  </div>
+                  <div class="cd-audit-time">
+                    {{ log.actionTime | date:'dd MMM yyyy, HH:mm' }}
+                  </div>
+                </div>
+              </div>
+              <div class="cd-empty" *ngIf="recentAudit.length === 0">
+                No recent activity found.
+              </div>
+            </ng-container>
+          </div>
+          <div class="cd-card-foot">
+            <a class="cd-viewall" routerLink="/audit">
+              View full audit log →
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

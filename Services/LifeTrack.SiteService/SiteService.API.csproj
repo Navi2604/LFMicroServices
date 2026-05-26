@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Shared\LifeTrack.Shared\LifeTrack.Shared.csproj" />
     <ProjectReference Include="..\..\Shared\LifeTrack.Shared\Shared.CL.csproj" />
   </ItemGroup>
 

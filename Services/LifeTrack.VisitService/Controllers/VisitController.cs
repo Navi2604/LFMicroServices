@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using LifeTrack.Shared;
+﻿// ============================================================
+// VisitService.API / Controllers / VisitController.cs
+// DELETE RESTRICTED TO SCHEDULED VISITS — Updated
+// ============================================================
+
 using LifeTrack.Shared.Wrappers;
+using LifeTrack.VisitService.DTOs;
+using LifeTrack.VisitService.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VisitService.API.Services;
 
 namespace VisitService.API.Controllers
 {
@@ -27,12 +29,12 @@ namespace VisitService.API.Controllers
         /// </summary>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<ApiResponse<List<VisitDto>>>> GetAllVisits()
+        public async Task<ActionResult<ApiResponse<List<VisitDto>>>> GetAllVisits([FromQuery] VisitFilterDto filter)
         {
             try
             {
-                var visits = await _visitService.GetAllAsync();
-                return Ok(ApiResponse<List<VisitDto>>.Ok(visits, "Visits retrieved successfully"));
+                var visits = await _visitService.GetAllAsync(filter);
+                return Ok(visits);
             }
             catch (Exception ex)
             {
@@ -51,10 +53,7 @@ namespace VisitService.API.Controllers
             try
             {
                 var visit = await _visitService.GetByIdAsync(id);
-                if (visit == null)
-                    return NotFound(ApiResponse<VisitDto>.Fail($"Visit {id} not found"));
-
-                return Ok(ApiResponse<VisitDto>.Ok(visit, "Visit retrieved successfully"));
+                return visit.Success ? Ok(visit) : NotFound(visit);
             }
             catch (Exception ex)
             {
@@ -76,7 +75,7 @@ namespace VisitService.API.Controllers
                     return BadRequest(ApiResponse<VisitDto>.Fail("Request body cannot be empty"));
 
                 var visit = await _visitService.CreateAsync(request);
-                return Ok(ApiResponse<VisitDto>.Ok(visit, "Visit created successfully"));
+                return visit.Success ? Ok(visit) : BadRequest(visit);
             }
             catch (InvalidOperationException ex)
             {
@@ -94,22 +93,15 @@ namespace VisitService.API.Controllers
         /// </summary>
         [HttpPatch("{id}/status")]
         [Authorize(Roles = "Admin,Investigator,ClinicalTrialManager")]
-        public async Task<ActionResult<ApiResponse<bool>>> UpdateVisitStatus(long id, [FromBody] dynamic request)
+        public async Task<ActionResult<ApiResponse<bool>>> UpdateVisitStatus(long id, [FromBody] UpdateVisitStatusRequest request)
         {
             try
             {
-                if (request == null || request.status == null)
+                if (request == null || string.IsNullOrEmpty(request.Status))
                     return BadRequest(ApiResponse<bool>.Fail("Status is required"));
 
-                var result = await _visitService.UpdateStatusAsync(id, request.status);
-                if (!result)
-                    return NotFound(ApiResponse<bool>.Fail($"Visit {id} not found"));
-
-                return Ok(ApiResponse<bool>.Ok(true, "Visit status updated successfully"));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ApiResponse<bool>.Fail(ex.Message));
+                var result = await _visitService.UpdateStatusAsync(id, request.Status);
+                return result.Success ? Ok(result) : NotFound(result);
             }
             catch (Exception ex)
             {
@@ -128,10 +120,7 @@ namespace VisitService.API.Controllers
             try
             {
                 var result = await _visitService.DeleteAsync(id);
-                if (!result)
-                    return BadRequest(ApiResponse<bool>.Fail("Visit not found or cannot be deleted (only Scheduled visits can be deleted)"));
-
-                return Ok(ApiResponse<bool>.Ok(true, "Visit deleted successfully"));
+                return result.Success ? Ok(result) : BadRequest(result);
             }
             catch (Exception ex)
             {

@@ -1,4 +1,4 @@
-// audit.component.ts
+// audit.component.ts - COMPLETE WITH PAGINATION
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -28,15 +28,18 @@ export class AuditComponent implements OnInit {
   totalLogs   = 0;
   unreadCount = 0;
 
-  // ── Filters ────────────────────────────────────────────────
+  // Filters
   filterAction     = '';
   filterEntityType = '';
   filterFromDate   = '';
   filterToDate     = '';
 
-  // ── Pagination ──────────────────────────────────────────────
-  page     = 1;
+  // ✅ Pagination
+  currentPage = 1;
   pageSize = 50;
+  totalPages = 0;
+  manualPageInput = '';
+  itemsPerPageOptions = [25, 50, 100];
 
   constructor(
     private auditApi: AuditApiService,
@@ -48,7 +51,7 @@ export class AuditComponent implements OnInit {
   load(): void {
     this.isLoading = true;
 
-    const params: any = { page: this.page, pageSize: this.pageSize };
+    const params: any = { page: this.currentPage, pageSize: this.pageSize };
     if (this.filterAction)     params['action']     = this.filterAction;
     if (this.filterEntityType) params['entityType'] = this.filterEntityType;
     if (this.filterFromDate)   params['fromDate']   = this.filterFromDate;
@@ -60,6 +63,7 @@ export class AuditComponent implements OnInit {
         if (r.success) {
           this.logs      = r.data?.logs ?? r.data ?? [];
           this.totalLogs = r.data?.total ?? this.logs.length;
+          this.totalPages = Math.ceil(this.totalLogs / this.pageSize); // ✅ NEW
           this.cdr.detectChanges();
         }
       },
@@ -68,7 +72,7 @@ export class AuditComponent implements OnInit {
   }
 
   applyFilters(): void {
-    this.page = 1;
+    this.currentPage = 1;
     this.load();
   }
 
@@ -77,12 +81,44 @@ export class AuditComponent implements OnInit {
     this.filterEntityType = '';
     this.filterFromDate   = '';
     this.filterToDate     = '';
-    this.page = 1;
+    this.currentPage = 1;
     this.load();
   }
 
-  nextPage(): void { this.page++; this.load(); }
-  prevPage(): void { if (this.page > 1) { this.page--; this.load(); } }
+  // ✅ Pagination methods
+  goToManualPage(): void {
+    const page = parseInt(this.manualPageInput, 10);
+    this.goToPage(page);
+    this.manualPageInput = '';
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.load();
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.load();
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.load();
+    }
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.totalPages = Math.ceil(this.totalLogs / this.pageSize);
+    this.currentPage = 1;
+    this.load();
+  }
 
   getActionBadge(action: string): string {
     const a = (action || '').toUpperCase();

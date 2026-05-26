@@ -1,4 +1,8 @@
-﻿// SiteService.cs
+﻿// ============================================================
+// SiteService.API / Services / SiteService.cs
+// DELETE METHOD REMOVED — Updated
+// ============================================================
+
 using LifeTrack.Shared.Wrappers;
 using LifeTrack.SiteService.DTOs;
 using LifeTrack.SiteService.Repositories.Interfaces;
@@ -9,6 +13,7 @@ namespace LifeTrack.SiteService.Services
     public class SiteService : ISiteService
     {
         private readonly ISiteRepository _repo;
+
         public SiteService(ISiteRepository repo) => _repo = repo;
 
         public async Task<ApiResponse<List<SiteDto>>> GetAllAsync(SiteFilterDto filter)
@@ -34,12 +39,6 @@ namespace LifeTrack.SiteService.Services
                 : ApiResponse<SiteDto>.Ok(s, "Site updated successfully.");
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(long id)
-        {
-            var deleted = await _repo.DeleteAsync(id);
-            return deleted
-                ? ApiResponse<bool>.Ok(true, "Site deleted successfully.")
-                : ApiResponse<bool>.Fail("Site not found.");
-        }
+        // ❌ DELETE REMOVED — Sites are kept for historical records
     }
 }

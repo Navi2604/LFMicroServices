@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // PatientService.API / Controllers / EnrollmentController.cs
+// NO DELETE ENDPOINT — Enrollments managed via status updates
 // ============================================================
 
 using LifeTrack.PatientService.DTOs;
@@ -60,5 +61,7 @@ namespace LifeTrack.PatientService.Controllers
             var result = await _service.UpdateStatusAsync(id, req);
             return result.Success ? Ok(result) : NotFound(result);
         }
+
+        // ❌ NO DELETE — Enrollments are immutable historical records
     }
 }

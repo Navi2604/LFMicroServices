@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // PatientService.API / Controllers / PatientController.cs
+// DELETE ENDPOINT REMOVED — Updated
 // ============================================================
 
 using LifeTrack.PatientService.DTOs;
@@ -42,13 +43,6 @@ namespace LifeTrack.PatientService.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        // DELETE /api/patients/{id}
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Delete(long id)
-        {
-            var result = await _service.DeleteAsync(id);
-            return result.Success ? Ok(result) : NotFound(result);
-        }
+        // ❌ DELETE REMOVED — Patients are deactivated, not deleted
     }
 }

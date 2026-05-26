@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // PatientService.API / Repositories / PatientRepository.cs
+// WITH CACHING 
 // ============================================================
 
 using LifeTrack.PatientService.DTOs;
@@ -7,18 +8,39 @@ using LifeTrack.PatientService.Repositories.Interfaces;
 using LifeTrack.Shared.Data;
 using LifeTrack.Shared.Models;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.Caching.Memory;
 
 namespace LifeTrack.PatientService.Repositories
 {
     public class PatientRepository : IPatientRepository
     {
         private readonly LifeTrackDbContext _db;
+        private readonly IMemoryCache _cache;
+        private const string PATIENT_CACHE_KEY = "patients_{0}_{1}_{2}_{3}";
+        private const string PATIENT_ID_CACHE_KEY = "patient_{0}";
+        private const int CACHE_DURATION_MINUTES = 20;
 
-        public PatientRepository(LifeTrackDbContext db) => _db = db;
+        public PatientRepository(LifeTrackDbContext db, IMemoryCache cache)
+        {
+            _db = db;
+            _cache = cache;
+        }
 
         public async Task<List<PatientDto>> GetAllAsync(PatientFilterDto filter)
         {
+            // ✅ CREATE CACHE KEY FROM FILTER
+            string cacheKey = string.Format(
+                PATIENT_CACHE_KEY,
+                filter.Name ?? "null",
+                filter.Email ?? "null",
+                filter.SiteProtocolID?.ToString() ?? "null",
+                filter.EnrollmentStatus ?? "null"
+            );
+
+            // ✅ CHECK CACHE FIRST
+            if (_cache.TryGetValue(cacheKey, out List<PatientDto>? cachedPatients))
+                return cachedPatients!;
+
             var query = _db.Patients.AsQueryable();
 
             if (!string.IsNullOrEmpty(filter.Name))
@@ -35,7 +57,7 @@ namespace LifeTrack.PatientService.Repositories
                 query = query.Where(p =>
                     p.Enrollments.Any(e => e.Status == filter.EnrollmentStatus));
 
-            return await query
+            var result = await query
                 .OrderByDescending(p => p.PatientID)
                 .Select(p => new PatientDto
                 {
@@ -46,14 +68,25 @@ namespace LifeTrack.PatientService.Repositories
                     Email = p.Email
                 })
                 .ToListAsync();
+
+            // ✅ STORE IN CACHE
+            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(CACHE_DURATION_MINUTES));
+
+            return result;
         }
 
         public async Task<PatientDto?> GetByIdAsync(long id)
         {
+            string cacheKey = string.Format(PATIENT_ID_CACHE_KEY, id);
+
+            // ✅ CHECK CACHE FIRST
+            if (_cache.TryGetValue(cacheKey, out PatientDto? cachedPatient))
+                return cachedPatient;
+
             var p = await _db.Patients.FindAsync(id);
             if (p == null) return null;
 
-            return new PatientDto
+            var dto = new PatientDto
             {
                 PatientID = p.PatientID,
                 Name = p.Name,
@@ -61,6 +94,11 @@ namespace LifeTrack.PatientService.Repositories
                 ContactInfo = p.ContactInfo,
                 Email = p.Email
             };
+
+            // ✅ STORE IN CACHE
+            _cache.Set(cacheKey, dto, TimeSpan.FromMinutes(CACHE_DURATION_MINUTES));
+
+            return dto;
         }
 
         public async Task<PatientDto> CreateAsync(CreatePatientRequest req)
@@ -77,6 +115,9 @@ namespace LifeTrack.PatientService.Repositories
             _db.Patients.Add(patient);
             await _db.SaveChangesAsync();
 
+            // ✅ INVALIDATE CACHE
+            InvalidateCache();
+
             return new PatientDto
             {
                 PatientID = patient.PatientID,
@@ -87,14 +128,16 @@ namespace LifeTrack.PatientService.Repositories
             };
         }
 
-        public async Task<bool> DeleteAsync(long id)
-        {
-            var p = await _db.Patients.FindAsync(id);
-            if (p == null) return false;
+        // ❌ NO DELETE METHOD — Removed from backend
 
-            _db.Patients.Remove(p);
-            await _db.SaveChangesAsync();
-            return true;
+        private void InvalidateCache()
+        {
+            // Clear all patient caches (brute force approach)
+            for (int i = 0; i < 100; i++)
+            {
+                string cacheKey = string.Format(PATIENT_CACHE_KEY, $"*{i}", $"*{i}", $"*{i}", $"*{i}");
+                _cache.Remove(cacheKey);
+            }
         }
     }
 }

@@ -11,7 +11,7 @@ namespace LifeTrack.SiteService.Repositories.Interfaces
         Task<List<DeviationDto>> GetAllAsync(DeviationFilterDto filter);
         Task<DeviationDto?> GetByIdAsync(long id);
         Task<DeviationDto> CreateAsync(CreateDeviationRequest req);
-        Task<bool> UpdateStatusAsync(long id, string status);
+        Task<bool> UpdateStatusAsync(long id, string status, string updaterRole);
         Task<bool> DeleteAsync(long id);
     }
 }

@@ -1,0 +1,307 @@
+<style>
+.kpi-toprow{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;}
+.kpi-page-title{font-size:24px;font-weight:700;color:#1a1a2e;margin-bottom:2px;}
+.kpi-page-sub{font-size:13px;color:#888;}
+.kpi-gen-btn{padding:10px 20px;background:#1a3a8f;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.kpi-gen-btn:hover{background:#152d6e;}
+.kpi-filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.kpi-fselect,.kpi-fdate{padding:9px 12px;border:1px solid #e5e7eb;border-radius:9px;font-size:13px;background:#fff;outline:none;}
+.kpi-fselect:focus,.kpi-fdate:focus{border-color:#1a3a8f;}
+.kpi-fdate{color:#555;}
+.kpi-clear{padding:9px 14px;border:1px solid #e5e7eb;background:#fff;border-radius:9px;font-size:12px;color:#888;cursor:pointer;}
+.kpi-clear:hover{border-color:#1a3a8f;color:#1a3a8f;}
+.kpi-table-wrap{background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;}
+.kpi-table{width:100%;border-collapse:collapse;}
+.kpi-table th{text-align:left;padding:13px 16px;background:#f7f8fc;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #e5e7eb;}
+.kpi-table td{padding:13px 16px;font-size:13px;color:#1a1a2e;border-bottom:1px solid #f5f5f8;}
+.kpi-table tr:last-child td{border-bottom:none;}
+.kpi-table tr:hover td{background:#fafbfc;}
+.kpi-id{font-family:'SF Mono','Consolas',monospace;font-size:12px;color:#1a3a8f;font-weight:500;}
+.kpi-scope{color:#555;font-size:12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
+.kpi-pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.kpi-pill-green{background:#e6f4ea;color:#1e7e34;}
+.kpi-pill-amber{background:#fef3e2;color:#b45309;}
+.kpi-pill-red{background:#fce8e6;color:#c0392b;}
+.kpi-btn{padding:6px 14px;border:1px solid #1a3a8f;background:#fff;color:#1a3a8f;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;}
+.kpi-btn:hover{background:#1a3a8f;color:#fff;}
+.kpi-empty{padding:48px 20px;text-align:center;color:#aaa;font-size:13px;}
+.kpi-empty-icon{font-size:42px;margin-bottom:10px;opacity:0.4;}
+.kpi-err{background:#fce8e6;border:1px solid #f5c5c1;color:#c0392b;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:16px;}
+
+/* Modal shared */
+.kpi-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;animation:kf 0.15s;}
+@keyframes kf{from{opacity:0;}to{opacity:1;}}
+.kpi-modal{background:#fff;border-radius:16px;width:100%;max-height:90vh;display:flex;flex-direction:column;animation:kp 0.2s;}
+@keyframes kp{from{transform:scale(0.95);opacity:0;}to{transform:scale(1);opacity:1;}}
+.kpi-modal-sm{max-width:520px;}
+.kpi-modal-md{max-width:620px;}
+.kpi-mhead{padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;}
+.kpi-mtitle{font-size:18px;font-weight:700;color:#1a1a2e;}
+.kpi-mclose{background:none;border:none;font-size:24px;color:#888;cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.kpi-mclose:hover{background:#f3f4f6;}
+.kpi-mbody{padding:22px 24px;overflow-y:auto;flex:1;}
+.kpi-mfoot{padding:14px 24px;border-top:1px solid #e5e7eb;display:flex;gap:10px;justify-content:flex-end;background:#fafbfc;}
+
+/* Form */
+.kpi-fg{margin-bottom:16px;}
+.kpi-lbl{display:block;font-size:11px;font-weight:600;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;}
+.kpi-inp,.kpi-sel{width:100%;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;}
+.kpi-inp:focus,.kpi-sel:focus{border-color:#1a3a8f;}
+.kpi-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.kpi-hint{font-size:11px;color:#aaa;margin-top:4px;}
+.kpi-ferr{background:#fce8e6;border:1px solid #f5c5c1;color:#c0392b;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:12px;}
+.kpi-primary{padding:10px 24px;background:#1a3a8f;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;}
+.kpi-primary:hover{background:#152d6e;}
+.kpi-primary[disabled]{opacity:0.5;cursor:not-allowed;}
+.kpi-cancel{padding:10px 20px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;color:#555;cursor:pointer;}
+.kpi-cancel:hover{border-color:#1a3a8f;color:#1a3a8f;}
+
+/* View modal metrics */
+.kpi-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;}
+.kpi-mc{background:#f7f8fc;border:1px solid #e5e7eb;border-radius:12px;padding:16px 12px;text-align:center;}
+.kpi-mc-icon{font-size:22px;margin-bottom:6px;}
+.kpi-mc-val{font-size:26px;font-weight:700;line-height:1.1;}
+.kpi-mc-val.green{color:#1e7e34;} .kpi-mc-val.amber{color:#b45309;} .kpi-mc-val.red{color:#c0392b;}
+.kpi-mc-lbl{font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-top:4px;}
+.kpi-drow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f5f5f8;}
+.kpi-drow:last-child{border-bottom:none;}
+.kpi-dlbl{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.04em;}
+.kpi-dval{font-size:13px;color:#1a1a2e;font-weight:500;}
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <span class="current">LifeTrack</span>
+        <span class="sep">/</span>
+        <span class="current">KPI Reports</span>
+      </div>
+      <div class="lt-topbar-right">
+        <button class="lt-notif-btn" routerLink="/notifications">
+          🔔<span class="dot" *ngIf="unreadCount > 0"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="lt-content">
+
+      <!-- Header row -->
+      <div class="kpi-toprow">
+        <div>
+          <div class="kpi-page-title">KPI Reports</div>
+          <div class="kpi-page-sub">{{ filtered.length }} of {{ reports.length }} reports on record</div>
+        </div>
+         <div style="display:flex; gap:10px; align-items:center;">
+    <!-- ADD THIS -->
+    <button class="kpi-cancel" (click)="exportToCsv()"
+            *ngIf="filtered.length > 0"
+            style="font-size:13px;">
+      ⬇ Export CSV
+    </button>
+
+    <button class="kpi-gen-btn" *ngIf="canGenerate" (click)="openGenerateModal()">
+      + Generate Report
+    </button>
+  </div>
+      </div>
+
+      <div class="kpi-err" *ngIf="errorMsg">⚠️ {{ errorMsg }}</div>
+
+      <!-- Filters -->
+      <div class="kpi-filters">
+        <select class="kpi-fselect" [(ngModel)]="protocolFilter" (ngModelChange)="onFilterChange()">
+          <option value="">All protocols</option>
+          <option *ngFor="let p of protocols" [value]="p.protocolID">{{ p.title }}</option>
+        </select>
+
+        <input class="kpi-fdate" type="date"
+               [(ngModel)]="fromDateFilter"
+               (ngModelChange)="onFilterChange()"
+               title="From date" />
+
+        <input class="kpi-fdate" type="date"
+               [(ngModel)]="toDateFilter"
+               (ngModelChange)="onFilterChange()"
+               title="To date" />
+
+        <button class="kpi-clear" *ngIf="hasActiveFilter" (click)="clearFilters()">
+          ✕ Clear
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="kpi-table-wrap">
+        <table class="kpi-table">
+          <thead>
+            <tr>
+              <th>Report ID</th>
+              <th>Protocol</th>
+              <th>Scope</th>
+              <th>Enrollment Rate</th>
+              <th>Dropout Rate</th>
+              <th>AE Count</th>
+              <th>Generated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of filtered">
+              <td><span class="kpi-id">KPI-{{ r.reportID }}</span></td>
+              <td>{{ r.protocolTitle || getProtocolName(r.protocolID) }}</td>
+              <td><span class="kpi-scope">{{ r.scope || '—' }}</span></td>
+              <td><span [class]="getEnrollmentClass(r.enrollmentRate)">{{ formatRate(r.enrollmentRate) }}</span></td>
+              <td><span [class]="getDropoutClass(r.dropoutRate)">{{ formatRate(r.dropoutRate) }}</span></td>
+              <td><span [class]="getAEClass(r.aeCount)">{{ r.aeCount }}</span></td>
+              <td>{{ r.generatedDate | date:'dd MMM yyyy' }}</td>
+              <td><button class="kpi-btn" (click)="openView(r)">View</button></td>
+            </tr>
+            <tr *ngIf="!isLoading && filtered.length === 0">
+              <td colspan="8">
+                <div class="kpi-empty">
+                  <div class="kpi-empty-icon">📊</div>
+                  <div *ngIf="reports.length === 0 && canGenerate">
+                    No reports yet. Click <strong>+ Generate Report</strong> to create your first KPI snapshot.
+                  </div>
+                  <div *ngIf="reports.length === 0 && !canGenerate">No KPI reports have been generated yet.</div>
+                  <div *ngIf="reports.length > 0">No reports match the current filters.</div>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="isLoading">
+              <td colspan="8"><div class="kpi-empty">Loading…</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Generate Modal ─────────────────────────────────────── -->
+    <div class="kpi-overlay" *ngIf="showGenerateModal" (click)="closeGenerateModal()">
+      <div class="kpi-modal kpi-modal-sm" (click)="$event.stopPropagation()">
+        <div class="kpi-mhead">
+          <div class="kpi-mtitle">Generate KPI Report</div>
+          <button class="kpi-mclose" (click)="closeGenerateModal()">×</button>
+        </div>
+        <div class="kpi-mbody">
+
+          <div class="kpi-fg">
+            <label class="kpi-lbl">Protocol *</label>
+            <select class="kpi-sel" [(ngModel)]="genForm.protocolID">
+              <option [value]="0" disabled>Select a protocol…</option>
+              <option *ngFor="let p of protocols" [value]="p.protocolID">{{ p.title }}</option>
+            </select>
+          </div>
+
+          <div class="kpi-fg">
+            <label class="kpi-lbl">Scope / Label</label>
+            <input class="kpi-inp" type="text"
+                   placeholder='e.g. "Monthly Review — May 2026"'
+                   [(ngModel)]="genForm.scope" />
+            <div class="kpi-hint">What period or aspect does this report cover?</div>
+          </div>
+
+          <div class="kpi-row2">
+            <div class="kpi-fg">
+              <label class="kpi-lbl">Enrollment Rate * (%)</label>
+              <input class="kpi-inp" type="number" min="0" max="100" step="0.1"
+                     placeholder="0 – 100"
+                     [(ngModel)]="genForm.enrollmentRate" />
+              <div class="kpi-hint">% of target enrollment achieved</div>
+            </div>
+            <div class="kpi-fg">
+              <label class="kpi-lbl">Dropout Rate * (%)</label>
+              <input class="kpi-inp" type="number" min="0" max="100" step="0.1"
+                     placeholder="0 – 100"
+                     [(ngModel)]="genForm.dropoutRate" />
+              <div class="kpi-hint">% of enrolled patients withdrawn</div>
+            </div>
+          </div>
+
+          <div class="kpi-fg">
+            <label class="kpi-lbl">AE Count *</label>
+            <input class="kpi-inp" type="number" min="0" step="1"
+                   placeholder="Total adverse events in this period"
+                   [(ngModel)]="genForm.aeCount" />
+            <div class="kpi-hint">Total adverse events reported in the reporting period</div>
+          </div>
+
+          <div class="kpi-ferr" *ngIf="genError">⚠️ {{ genError }}</div>
+        </div>
+        <div class="kpi-mfoot">
+          <button class="kpi-cancel" (click)="closeGenerateModal()">Cancel</button>
+          <button class="kpi-primary"
+                  [disabled]="!isGenFormValid() || isGenerating"
+                  (click)="submitGenerate()">
+            <span *ngIf="!isGenerating">Generate Report</span>
+            <span *ngIf="isGenerating">Generating…</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── View Modal ─────────────────────────────────────────── -->
+    <div class="kpi-overlay" *ngIf="showViewModal && selectedReport" (click)="closeViewModal()">
+      <div class="kpi-modal kpi-modal-md" (click)="$event.stopPropagation()">
+        <div class="kpi-mhead">
+          <div class="kpi-mtitle">KPI Report — <span class="kpi-id">KPI-{{ selectedReport.reportID }}</span></div>
+          <button class="kpi-mclose" (click)="closeViewModal()">×</button>
+        </div>
+        <div class="kpi-mbody">
+
+          <!-- Three metric cards -->
+          <div class="kpi-metrics">
+            <div class="kpi-mc">
+              <div class="kpi-mc-icon">📈</div>
+              <div class="kpi-mc-val" [class]="getEnrollmentColor(selectedReport.enrollmentRate)">
+                {{ formatRate(selectedReport.enrollmentRate) }}
+              </div>
+              <div class="kpi-mc-lbl">Enrollment Rate</div>
+            </div>
+            <div class="kpi-mc">
+              <div class="kpi-mc-icon">📉</div>
+              <div class="kpi-mc-val" [class]="getDropoutColor(selectedReport.dropoutRate)">
+                {{ formatRate(selectedReport.dropoutRate) }}
+              </div>
+              <div class="kpi-mc-lbl">Dropout Rate</div>
+            </div>
+            <div class="kpi-mc">
+              <div class="kpi-mc-icon">⚠️</div>
+              <div class="kpi-mc-val" [class]="getAEColor(selectedReport.aeCount)">
+                {{ selectedReport.aeCount }}
+              </div>
+              <div class="kpi-mc-lbl">AE Count</div>
+            </div>
+          </div>
+
+          <!-- Detail rows -->
+          <div class="kpi-drow">
+            <div class="kpi-dlbl">Protocol</div>
+            <div class="kpi-dval">{{ selectedReport.protocolTitle || getProtocolName(selectedReport.protocolID) }}</div>
+          </div>
+          <div class="kpi-drow">
+            <div class="kpi-dlbl">Scope</div>
+            <div class="kpi-dval">{{ selectedReport.scope || '— No scope label —' }}</div>
+          </div>
+          <div class="kpi-drow">
+            <div class="kpi-dlbl">Generated</div>
+            <div class="kpi-dval">{{ selectedReport.generatedDate | date:'dd MMM yyyy, HH:mm' }}</div>
+          </div>
+          <div class="kpi-drow">
+            <div class="kpi-dlbl">Color guide</div>
+            <div class="kpi-dval" style="font-size:12px;color:#888;">
+              Enrollment: 🟢 ≥70% · 🟡 40–70% · 🔴 &lt;40% &nbsp;|&nbsp;
+              Dropout: 🟢 ≤10% · 🟡 10–25% · 🔴 &gt;25%
+            </div>
+          </div>
+        </div>
+        <div class="kpi-mfoot">
+          <button class="kpi-cancel" (click)="closeViewModal()">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

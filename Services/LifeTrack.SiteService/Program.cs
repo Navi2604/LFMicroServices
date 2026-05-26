@@ -1,5 +1,5 @@
 // ============================================================
-// SiteService.API / Program.cs
+// SiteService.API / Program.cs — WITH CACHING
 // ============================================================
 
 using LifeTrack.SiteService.Repositories;
@@ -19,6 +19,9 @@ builder.Services.AddDbContext<LifeTrackDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// ✅ ADD MEMORY CACHE
+builder.Services.AddMemoryCache();
+
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<GlobalExceptionFilter>();
@@ -35,6 +38,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<GlobalExceptionFilter>();
 builder.Services.AddScoped<ValidationFilter>();
 
+// ✅ REGISTER REPOSITORIES & SERVICES WITH CACHE
 builder.Services.AddScoped<ISiteRepository, SiteRepository>();
 builder.Services.AddScoped<ISiteProtocolRepository, SiteProtocolRepository>();
 builder.Services.AddScoped<IDeviationRepository, DeviationRepository>();

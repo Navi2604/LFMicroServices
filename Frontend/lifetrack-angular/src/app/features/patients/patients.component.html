@@ -60,30 +60,46 @@
         </button>
       </div>
 
-      <!-- Status filter tabs -->
-      <div class="st-tabs">
-        <button class="st-tab" [class.active]="statusTab==='All'" (click)="setStatusTab('All')">
-          All <span class="sc">{{ countByStatus('All') }}</span>
-        </button>
-        <button class="st-tab" [class.active]="statusTab==='Active'" (click)="setStatusTab('Active')">
-          Active <span class="sc">{{ countByStatus('Active') }}</span>
-        </button>
-        <button class="st-tab" [class.active]="statusTab==='Completed'" (click)="setStatusTab('Completed')"
-          *ngIf="activeTab==='mine'">
-          Completed <span class="sc">{{ countByStatus('Completed') }}</span>
-        </button>
-        <button class="st-tab" [class.active]="statusTab==='Withdrawn'" (click)="setStatusTab('Withdrawn')"
-          *ngIf="activeTab==='mine'">
-          Withdrawn <span class="sc">{{ countByStatus('Withdrawn') }}</span>
-        </button>
-        <button class="st-tab" [class.active]="statusTab===''" (click)="setStatusTab('')"
-          *ngIf="activeTab==='all'">
-          Not Enrolled <span class="sc">{{ countByStatus('') }}</span>
-        </button>
+      <!-- Status filter tabs — hidden for investigator My Patients -->
+      <div class="st-tabs" *ngIf="!(isInvestigator && activeTab==='mine')">
+        <!-- For "All Patients" tab: All, Pending, Not Enrolled, Re-enroll (NO Active) -->
+        <ng-container *ngIf="activeTab==='all'">
+          <button class="st-tab" [class.active]="statusTab==='All'" (click)="setStatusTab('All')">
+            All <span class="sc">{{ countByStatus('All') }}</span>
+          </button>
+          <button class="st-tab" [class.active]="statusTab==='Pending'" (click)="setStatusTab('Pending')">
+            Pending <span class="sc">{{ countByStatus('Pending') }}</span>
+          </button>
+          <button class="st-tab" [class.active]="statusTab===''" (click)="setStatusTab('')">
+            Not Enrolled <span class="sc">{{ countByStatus('') }}</span>
+          </button>
+          <button class="st-tab" [class.active]="statusTab==='Re-enroll'" (click)="setStatusTab('Re-enroll')">
+            Re-enroll <span class="sc">{{ countByStatus('Re-enroll') }}</span>
+          </button>
+        </ng-container>
+        
+        <!-- For "My Patients" tab: All, Active, Pending, Completed, Withdrawn -->
+        <ng-container *ngIf="activeTab==='mine'">
+          <button class="st-tab" [class.active]="statusTab==='All'" (click)="setStatusTab('All')">
+            All <span class="sc">{{ countByStatus('All') }}</span>
+          </button>
+          <button class="st-tab" [class.active]="statusTab==='Active'" (click)="setStatusTab('Active')">
+            Active <span class="sc">{{ countByStatus('Active') }}</span>
+          </button>
+          <button class="st-tab" [class.active]="statusTab==='Pending'" (click)="setStatusTab('Pending')">
+            Pending <span class="sc">{{ countByStatus('Pending') }}</span>
+          </button>
+          <button class="st-tab" [class.active]="statusTab==='Completed'" (click)="setStatusTab('Completed')">
+            Completed <span class="sc">{{ countByStatus('Completed') }}</span>
+          </button>
+          <button class="st-tab" [class.active]="statusTab==='Withdrawn'" (click)="setStatusTab('Withdrawn')">
+            Withdrawn <span class="sc">{{ countByStatus('Withdrawn') }}</span>
+          </button>
+        </ng-container>
       </div>
 
-      <!-- Search -->
-      <div class="lt-search-row">
+      <!-- Search — hidden for investigator My Patients -->
+      <div class="lt-search-row" *ngIf="!(isInvestigator && activeTab==='mine')">
         <div class="lt-search-wrap">
           <span class="search-ic">🔍</span>
           <input class="lt-search-input" placeholder="Search by name, email or protocol..."
@@ -93,8 +109,116 @@
 
       <div class="lt-loading-row" *ngIf="isLoading"><span class="lt-spinner"></span> Loading...</div>
 
-      <!-- Table — no DOB or Contact columns -->
-      <div class="lt-table-wrap" *ngIf="!isLoading">
+      <!-- INVESTIGATOR: My Patients grouped by Site-Protocol -->
+      <div *ngIf="!isLoading && isInvestigator && activeTab==='mine'">
+        <div *ngFor="let g of siteProtocolGroups"
+          style="border:1px solid #e5e7eb;border-radius:12px;margin-bottom:14px;overflow:hidden;">
+
+          <!-- Group header -->
+          <div (click)="toggleProtocolGroup(g.siteProtocolID)"
+            style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#f7f8fc;cursor:pointer;user-select:none;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-size:14px;font-weight:600;color:#1a1a2e;">{{ g.protocolTitle }}</span>
+              <span style="font-size:12px;color:#555;background:#eee;padding:2px 10px;border-radius:20px;">{{ g.siteName }}</span>
+              <span class="lt-badge" [ngClass]="g.status==='Ongoing'?'lt-badge-green':g.status==='Upcoming'?'lt-badge-amber':'lt-badge-gray'">{{ g.status }}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:12px;background:#e8edf8;color:#1a3a8f;padding:2px 10px;border-radius:20px;font-weight:600;">
+                {{ g.patients.length }} patient{{ g.patients.length !== 1 ? 's' : '' }}
+              </span>
+              <span style="font-size:11px;color:#888;">{{ isGroupExpanded(g.siteProtocolID) ? '▲' : '▼' }}</span>
+            </div>
+          </div>
+
+          <!-- Expanded content -->
+          <div *ngIf="isGroupExpanded(g.siteProtocolID)" style="padding:14px 16px;background:#fff;">
+
+            <!-- Status tabs per group -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+              <button class="st-tab" [class.active]="getGroupStatus(g.siteProtocolID)==='All'"
+                (click)="setGroupStatus(g.siteProtocolID,'All');$event.stopPropagation()">
+                All <span class="tab-count">{{ countGroupByStatus(g,'All') }}</span>
+              </button>
+              <button class="st-tab" [class.active]="getGroupStatus(g.siteProtocolID)==='Active'"
+                (click)="setGroupStatus(g.siteProtocolID,'Active');$event.stopPropagation()">
+                Active <span class="tab-count">{{ countGroupByStatus(g,'Active') }}</span>
+              </button>
+              <button class="st-tab" [class.active]="getGroupStatus(g.siteProtocolID)==='Pending'"
+                (click)="setGroupStatus(g.siteProtocolID,'Pending');$event.stopPropagation()">
+                Pending <span class="tab-count">{{ countGroupByStatus(g,'Pending') }}</span>
+              </button>
+              <button class="st-tab" [class.active]="getGroupStatus(g.siteProtocolID)==='Completed'"
+                (click)="setGroupStatus(g.siteProtocolID,'Completed');$event.stopPropagation()">
+                Completed <span class="tab-count">{{ countGroupByStatus(g,'Completed') }}</span>
+              </button>
+              <button class="st-tab" [class.active]="getGroupStatus(g.siteProtocolID)==='Withdrawn'"
+                (click)="setGroupStatus(g.siteProtocolID,'Withdrawn');$event.stopPropagation()">
+                Withdrawn <span class="tab-count">{{ countGroupByStatus(g,'Withdrawn') }}</span>
+              </button>
+            </div>
+
+            <!-- Search per group -->
+            <div class="lt-search-row" style="margin-bottom:10px;" (click)="$event.stopPropagation()">
+              <div class="lt-search-wrap">
+                <span class="search-ic">🔍</span>
+                <input class="lt-search-input" placeholder="Search by name or email..."
+                  [value]="getGroupSearch(g.siteProtocolID)"
+                  (input)="setGroupSearch(g.siteProtocolID,$any($event.target).value)" />
+              </div>
+            </div>
+
+            <!-- Patients table -->
+            <div *ngIf="g.patients.length === 0"
+              style="padding:20px;text-align:center;color:#aaa;font-size:13px;">
+              No patients enrolled in this site-protocol.
+            </div>
+            <div *ngIf="getFilteredGroupPatients(g).length === 0 && g.patients.length > 0"
+              style="padding:20px;text-align:center;color:#aaa;font-size:13px;">
+              No patients match your filter.
+            </div>
+            <table class="lt-table" *ngIf="getFilteredGroupPatients(g).length > 0" style="margin:0;">
+              <thead>
+                <tr>
+                  <th>Patient ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th style="text-align:left;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of getFilteredGroupPatients(g)">
+                  <td class="cell-id">PT-{{ p.patientID }}</td>
+                  <td style="font-weight:500;">{{ p.name }}</td>
+                  <td class="cell-muted">{{ p.email }}</td>
+                  <td>
+                    <span class="lt-badge" [ngClass]="getStatusBadge(getPatientStatus(p))"
+                      *ngIf="getPatientStatus(p)">{{ getPatientStatus(p) }}</span>
+                    <span style="color:#aaa;font-size:12px;" *ngIf="!getPatientStatus(p)">—</span>
+                  </td>
+                  <td>
+                    <div style="display:flex;gap:6px;align-items:center;" (click)="$event.stopPropagation()">
+                      <button class="lt-btn lt-btn-secondary lt-btn-sm"
+                        (click)="openView(p);$event.stopPropagation()">View</button>
+                      <button class="lt-btn lt-btn-secondary lt-btn-sm"
+                        *ngIf="canEnroll && isEnrolled(p) && getPatientStatus(p)==='Active'"
+                        (click)="openEditStatus(p);$event.stopPropagation()">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div *ngIf="siteProtocolGroups.length === 0"
+          style="padding:32px;text-align:center;color:#aaa;font-size:13px;background:#f9fafb;border-radius:10px;">
+          No site-protocols assigned to you.
+        </div>
+      </div>
+
+      <!-- Table — for All tab OR non-investigator -->
+      <div class="lt-table-wrap" *ngIf="!isLoading && !(isInvestigator && activeTab==='mine')">
         <table class="lt-table">
           <thead>
             <tr>
@@ -106,7 +230,7 @@
               <th style="text-align:left;">Actions</th>
           </thead>
           <tbody>
-            <tr *ngFor="let p of filtered">
+            <tr *ngFor="let p of paginatedFiltered">
               <td class="cell-id">PT-{{ p.patientID }}</td>
               <td style="font-weight:500;">{{ p.name }}</td>
               <td class="cell-muted">{{ p.email }}</td>
@@ -143,10 +267,27 @@
             </tr>
           </tbody>
         </table>
+
+      <!-- ✅ Pagination -->
+      <div *ngIf="!isLoading && totalPages > 1" style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding:16px;background:#f9fafb;border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+          <label>Per page:</label>
+          <select [(ngModel)]="pageSize" (change)="changePageSize(pageSize)" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:13px;">
+            <option *ngFor="let size of itemsPerPageOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+        <div style="font-size:13px;color:#666;font-weight:500;">
+          Page {{ currentPage }} of {{ totalPages }} · {{ totalItems }} total
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;gap:4px;">
+            <button *ngFor="let p of getPaginationButtons()" (click)="goToPage(p)" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;font-weight:500;" [style.background]="p === currentPage ? '#1a3a8f' : '#fff'" [style.color]="p === currentPage ? '#fff' : '#555'">{{ p }}</button>
+          </div>
+          <input type="number" [(ngModel)]="jumpToPage" (keyup.enter)="goToPage(jumpToPage)" placeholder="Go to" style="width:60px;padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:12px;">
+          <button (click)="prevPage()" [disabled]="currentPage === 1" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">← Prev</button>
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages" style="padding:6px 10px;border:1px solid #dde1f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;">Next →</button>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
 
 <!-- VIEW MODAL -->
 <div class="lt-modal-overlay" *ngIf="showView" (click)="closeView()">

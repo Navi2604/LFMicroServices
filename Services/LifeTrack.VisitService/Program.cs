@@ -1,7 +1,13 @@
-using LifeTrack.Shared;
+// ============================================================
+// VisitService.API / Program.cs — WITH CACHING (FIXED)
+// ============================================================
+
 using LifeTrack.Shared.Data;
+using LifeTrack.VisitService.Repositories;
+using LifeTrack.VisitService.Repositories.Interfaces;
+using LifeTrack.VisitService.Services;
+using LifeTrack.VisitService.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using VisitService.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,12 +16,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ✅ ADD MEMORY CACHE
+builder.Services.AddMemoryCache();
+
 // Add DbContext
 builder.Services.AddDbContext<LifeTrackDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ✅ FIXED: Register IVisitService with VisitService implementation
-builder.Services.AddScoped<IVisitService, VisitService.API.Services.VisitService>();
+// ✅ REGISTER REPOSITORIES & SERVICES WITH CACHE
+// ✅ FIXED: Use full namespace to avoid conflict with VisitService namespace
+builder.Services.AddScoped<IVisitRepository, VisitRepository>();
+builder.Services.AddScoped<IVisitService, LifeTrack.VisitService.Services.VisitService>();
 
 // Add CORS if needed
 builder.Services.AddCors(options =>

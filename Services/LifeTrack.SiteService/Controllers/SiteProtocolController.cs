@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // SiteService.API / Controllers / SiteProtocolController.cs
+// WITH DELETE — No changes (as designed)
 // ============================================================
 
 using LifeTrack.SiteService.DTOs;
@@ -52,7 +53,7 @@ namespace LifeTrack.SiteService.Controllers
             return result.Success ? Ok(result) : NotFound(result);
         }
 
-        // DELETE /api/site-protocols/{id}
+        // DELETE /api/site-protocols/{id} — ✅ ALLOWED (unassigns investigator)
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(long id)

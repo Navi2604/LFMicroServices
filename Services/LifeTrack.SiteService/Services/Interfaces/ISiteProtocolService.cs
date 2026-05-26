@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // SiteService.API / Services / Interfaces / ISiteProtocolService.cs
+// WITH DELETE — No changes (caching at repo level)
 // ============================================================
 
 using LifeTrack.Shared.Wrappers;
@@ -13,6 +14,6 @@ namespace LifeTrack.SiteService.Services.Interfaces
         Task<ApiResponse<SiteProtocolDto>> GetByIdAsync(long id);
         Task<ApiResponse<SiteProtocolDto>> CreateAsync(CreateSiteProtocolRequest req);
         Task<ApiResponse<bool>> UpdateStatusAsync(long id, string status);
-        Task<ApiResponse<bool>> DeleteAsync(long id);
+        Task<ApiResponse<bool>> DeleteAsync(long id);   // ✅ Allowed (unassigns investigator)
     }
 }

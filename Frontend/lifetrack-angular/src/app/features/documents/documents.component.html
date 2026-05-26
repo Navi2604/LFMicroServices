@@ -1,0 +1,460 @@
+<style>
+.doc-toprow{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;}
+.doc-page-title{font-size:24px;font-weight:700;color:#1a1a2e;margin-bottom:2px;}
+.doc-page-sub{font-size:13px;color:#888;}
+.doc-new-btn{padding:10px 20px;background:#1a3a8f;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.doc-new-btn:hover{background:#152d6e;}
+
+.doc-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.doc-tab{padding:7px 16px;border-radius:24px;border:1px solid #e5e7eb;background:#fff;font-size:13px;font-weight:500;color:#555;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all 0.15s;}
+.doc-tab:hover{border-color:#c7d2fe;}
+.doc-tab.active{background:#1a3a8f;border-color:#1a3a8f;color:#fff;}
+.doc-tab-count{background:rgba(0,0,0,0.08);padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600;}
+.doc-tab.active .doc-tab-count{background:rgba(255,255,255,0.25);color:#fff;}
+
+.doc-filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.doc-fsel{padding:9px 12px;border:1px solid #e5e7eb;border-radius:9px;font-size:13px;background:#fff;outline:none;min-width:180px;}
+.doc-fsel:focus{border-color:#1a3a8f;}
+
+.doc-table-wrap{background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;}
+.doc-table{width:100%;border-collapse:collapse;}
+.doc-table th{text-align:left;padding:13px 14px;background:#f7f8fc;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #e5e7eb;}
+.doc-table td{padding:13px 14px;font-size:13px;color:#1a1a2e;border-bottom:1px solid #f5f5f8;vertical-align:middle;}
+.doc-table tr:last-child td{border-bottom:none;}
+.doc-table tr:hover td{background:#fafbfc;}
+.doc-id{font-family:'SF Mono','Consolas',monospace;font-size:11px;color:#1a3a8f;font-weight:500;}
+.doc-title{font-weight:500;max-width:200px;}
+.doc-type{font-size:12px;color:#555;}
+.doc-pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.doc-pill-green{background:#e6f4ea;color:#1e7e34;}
+.doc-pill-amber{background:#fef3e2;color:#b45309;}
+.doc-pill-red{background:#fce8e6;color:#c0392b;}
+.doc-pill-gray{background:#f3f4f6;color:#6b7280;}
+.doc-pill-muted{background:#f0f0f0;color:#999;font-style:italic;}
+.doc-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.doc-btn{padding:5px 12px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid;transition:all 0.12s;white-space:nowrap;}
+.doc-btn-view{border-color:#1a3a8f;background:#fff;color:#1a3a8f;}
+.doc-btn-view:hover{background:#1a3a8f;color:#fff;}
+.doc-btn-submit{border-color:#0F6E56;background:#fff;color:#0F6E56;}
+.doc-btn-submit:hover{background:#0F6E56;color:#fff;}
+.doc-btn-review{border-color:#854F0B;background:#fff;color:#854F0B;}
+.doc-btn-review:hover{background:#854F0B;color:#fff;}
+.doc-btn-delete{border-color:#c0392b;background:#fff;color:#c0392b;}
+.doc-btn-delete:hover{background:#c0392b;color:#fff;}
+.doc-btn[disabled]{opacity:0.5;cursor:not-allowed;}
+.doc-empty{padding:48px 20px;text-align:center;color:#aaa;font-size:13px;}
+.doc-empty-icon{font-size:40px;margin-bottom:10px;opacity:0.4;}
+.doc-err{background:#fce8e6;border:1px solid #f5c5c1;color:#c0392b;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:16px;}
+
+/* Modal shared */
+.doc-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;animation:df 0.15s;}
+@keyframes df{from{opacity:0;}to{opacity:1;}}
+.doc-modal{background:#fff;border-radius:16px;width:100%;max-height:90vh;display:flex;flex-direction:column;animation:dp 0.2s;}
+@keyframes dp{from{transform:scale(0.95);opacity:0;}to{transform:scale(1);opacity:1;}}
+.doc-modal-sm{max-width:520px;}
+.doc-modal-md{max-width:640px;}
+.doc-mhead{padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;}
+.doc-mtitle{font-size:18px;font-weight:700;color:#1a1a2e;}
+.doc-mclose{background:none;border:none;font-size:24px;color:#888;cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.doc-mclose:hover{background:#f3f4f6;}
+.doc-mbody{padding:20px 24px;overflow-y:auto;flex:1;}
+.doc-mfoot{padding:14px 24px;border-top:1px solid #e5e7eb;display:flex;gap:10px;justify-content:flex-end;background:#fafbfc;}
+
+/* Form fields */
+.doc-fg{margin-bottom:14px;}
+.doc-lbl{display:block;font-size:11px;font-weight:600;color:#555;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em;}
+.doc-inp,.doc-sel,.doc-ta{width:100%;padding:10px 13px;border:1px solid #e5e7eb;border-radius:9px;font-size:13px;outline:none;box-sizing:border-box;background:#fff;font-family:inherit;}
+.doc-inp:focus,.doc-sel:focus,.doc-ta:focus{border-color:#1a3a8f;}
+.doc-ta{resize:vertical;min-height:80px;}
+.doc-hint{font-size:11px;color:#aaa;margin-top:3px;}
+.doc-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.doc-ferr{background:#fce8e6;border:1px solid #f5c5c1;color:#c0392b;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:10px;}
+.doc-fsuc{background:#e6f4ea;border:1px solid #b7e0c2;color:#1e7e34;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:10px;}
+
+/* Primary/cancel buttons */
+.doc-primary{padding:10px 22px;background:#1a3a8f;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;}
+.doc-primary:hover{background:#152d6e;}
+.doc-primary[disabled]{opacity:0.5;cursor:not-allowed;}
+.doc-cancel{padding:10px 18px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;color:#555;cursor:pointer;}
+.doc-cancel:hover{border-color:#1a3a8f;color:#1a3a8f;}
+
+/* View modal details */
+.doc-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:4px;}
+.doc-mlabel{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px;}
+.doc-mvalue{font-size:13px;color:#1a1a2e;}
+.doc-section{padding-top:14px;border-top:1px solid #f5f5f8;margin-top:14px;}
+.doc-review-box{background:#f7f8fc;padding:12px 14px;border-radius:10px;font-size:13px;color:#444;line-height:1.5;}
+
+/* Review toggle */
+.doc-toggle-row{display:flex;gap:10px;margin-bottom:14px;}
+.doc-toggle-btn{flex:1;padding:10px;border-radius:10px;border:2px solid #e5e7eb;background:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;text-align:center;}
+.doc-toggle-btn.approve.active{border-color:#1e7e34;background:#e6f4ea;color:#1e7e34;}
+.doc-toggle-btn.reject.active{border-color:#c0392b;background:#fce8e6;color:#c0392b;}
+
+.doc-pill-archived { background:#ede9fe; color:#6d28d9; font-style:italic; }
+.doc-btn-archive   { border-color:#7c3aed; background:#fff; color:#7c3aed; }
+.doc-btn-archive:hover { background:#7c3aed; color:#fff; }
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <span class="current">LifeTrack</span>
+        <span class="sep">/</span>
+        <span class="current">Documents</span>
+      </div>
+      <div class="lt-topbar-right">
+        <button class="lt-notif-btn" routerLink="/notifications">
+          🔔<span class="dot" *ngIf="unreadCount > 0"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="lt-content">
+
+      <!-- Header -->
+      <div class="doc-toprow">
+        <div>
+          <div class="doc-page-title">Documents</div>
+          <div class="doc-page-sub">
+            {{ filtered.length }} of {{ docs.length }} documents on record
+          </div>
+        </div>
+        <button class="doc-new-btn" *ngIf="canCreate" (click)="openCreateModal()">
+          + New Document
+        </button>
+      </div>
+
+      <div class="doc-err" *ngIf="errorMsg">⚠️ {{ errorMsg }}</div>
+
+      <!-- Status tabs -->
+      <div class="doc-tabs">
+        <div class="doc-tab" [class.active]="activeTab==='all'"         (click)="switchTab('all')">All <span class="doc-tab-count">{{ docs.length }}</span></div>
+        <div class="doc-tab" [class.active]="activeTab==='Draft'"       (click)="switchTab('Draft')">Draft <span class="doc-tab-count">{{ countByStatus('Draft') }}</span></div>
+        <div class="doc-tab" [class.active]="activeTab==='Under Review'" (click)="switchTab('Under Review')">Under Review <span class="doc-tab-count">{{ countByStatus('Under Review') }}</span></div>
+        <div class="doc-tab" [class.active]="activeTab==='Approved'"    (click)="switchTab('Approved')">Approved <span class="doc-tab-count">{{ countByStatus('Approved') }}</span></div>
+        <div class="doc-tab" [class.active]="activeTab==='Rejected'"    (click)="switchTab('Rejected')">Rejected <span class="doc-tab-count">{{ countByStatus('Rejected') }}</span></div>
+        <div class="doc-tab" [class.active]="activeTab==='Superseded'"  (click)="switchTab('Superseded')">Superseded <span class="doc-tab-count">{{ countByStatus('Superseded') }}</span></div>
+        <div class="doc-tab" [class.active]="activeTab==='Archived'"
+     (click)="switchTab('Archived')"
+     *ngIf="userRole === 'Admin'"
+     style="opacity:0.75;">
+  Archived
+  <span class="doc-tab-count">{{ countByStatus('Archived') }}</span>
+</div>
+      </div>
+
+      <!-- Filters -->
+      <div class="doc-filters">
+        <select class="doc-fsel" [(ngModel)]="protocolFilter" (ngModelChange)="onProtocolChange()">
+          <option value="">All protocols</option>
+          <option *ngFor="let p of protocols" [value]="p.protocolID">{{ p.title }}</option>
+        </select>
+        <select class="doc-fsel" [(ngModel)]="typeFilter" (ngModelChange)="onTypeChange()">
+          <option value="all">All types</option>
+          <option *ngFor="let t of docTypes" [value]="t.value">{{ t.label }}</option>
+        </select>
+      </div>
+
+      <!-- Table -->
+      <div class="doc-table-wrap">
+        <table class="doc-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Type</th>
+              <th>Protocol</th>
+              <th>Version</th>
+              <th>Uploaded by</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of filtered">
+              <td><span class="doc-id">DOC-{{ d.documentID }}</span></td>
+              <td><span class="doc-title">{{ truncate(d.title) }}</span></td>
+              <td><span class="doc-type">{{ getTypelabel(d.type) }}</span></td>
+              <td>{{ truncate(d.protocolTitle, 25) }}</td>
+              <td>{{ d.version }}</td>
+              <td>{{ d.uploaderName }}</td>
+              <td><span [class]="getStatusClass(d.status)">{{ d.status }}</span></td>
+              <td>{{ d.uploadedAt | date:'dd MMM yyyy' }}</td>
+              <td>
+                <div class="doc-actions">
+                  <!-- View — all roles -->
+                  <button class="doc-btn doc-btn-view" (click)="openView(d)">View</button>
+
+                  <!-- Submit for Review — Admin/CTM, Draft only -->
+                  <button class="doc-btn doc-btn-submit"
+                          *ngIf="canCreate && d.status === 'Draft'"
+                          [disabled]="submitting[d.documentID]"
+                          (click)="submitForReview(d)">
+                    {{ submitting[d.documentID] ? '…' : 'Submit' }}
+                  </button>
+
+                  <!-- Review — RO/Admin, Under Review only -->
+                  <button class="doc-btn doc-btn-review"
+                          *ngIf="canReview && d.status === 'Under Review'"
+                          (click)="openReview(d)">
+                    Review
+                  </button>
+
+<!-- ARCHIVE — Admin only, Rejected status only -->
+<button class="doc-btn doc-btn-archive"
+        *ngIf="userRole === 'Admin' && d.status === 'Rejected'"
+        [disabled]="archiving[d.documentID]"
+        (click)="archiveDoc(d)">
+  {{ archiving[d.documentID] ? '…' : 'Archive' }}
+</button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="!isLoading && filtered.length === 0">
+              <td colspan="9">
+                <div class="doc-empty">
+                  <div class="doc-empty-icon">📄</div>
+                  <div *ngIf="docs.length === 0 && canCreate">
+                    No documents yet. Click <strong>+ New Document</strong> to upload the first one.
+                  </div>
+                  <div *ngIf="docs.length === 0 && !canCreate">No documents have been uploaded yet.</div>
+                  <div *ngIf="docs.length > 0">No documents match the current filters.</div>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="isLoading">
+              <td colspan="9"><div class="doc-empty">Loading…</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Create Modal ────────────────────────────────────────── -->
+    <div class="doc-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+      <div class="doc-modal doc-modal-sm" (click)="$event.stopPropagation()">
+        <div class="doc-mhead">
+          <div class="doc-mtitle">New Document</div>
+          <button class="doc-mclose" (click)="closeCreateModal()">×</button>
+        </div>
+        <div class="doc-mbody">
+
+          <div class="doc-fg">
+            <label class="doc-lbl">Protocol *</label>
+            <select class="doc-sel" [(ngModel)]="createForm.protocolID">
+              <option [value]="0" disabled>Select protocol…</option>
+              <option *ngFor="let p of protocols" [value]="p.protocolID">{{ p.title }}</option>
+            </select>
+          </div>
+
+          <div class="doc-fg">
+            <label class="doc-lbl">Document Title *</label>
+            <input class="doc-inp" type="text"
+                   placeholder="e.g. Cancer Trial Protocol v1.0"
+                   [(ngModel)]="createForm.title" />
+          </div>
+
+          <div class="doc-row2">
+            <div class="doc-fg">
+              <label class="doc-lbl">Type *</label>
+              <select class="doc-sel" [(ngModel)]="createForm.type">
+                <option value="" disabled>Select type…</option>
+                <option *ngFor="let t of docTypes" [value]="t.value">{{ t.label }}</option>
+              </select>
+            </div>
+            <div class="doc-fg">
+              <label class="doc-lbl">Version *</label>
+              <input class="doc-inp" type="text"
+                     placeholder="e.g. v1.0"
+                     [(ngModel)]="createForm.version" />
+            </div>
+          </div>
+
+          <div class="doc-fg">
+            <label class="doc-lbl">Document URL *</label>
+            <input class="doc-inp" type="text"
+                   placeholder="https://your-sharepoint.com/..."
+                   [(ngModel)]="createForm.fileURL" />
+            <div class="doc-hint">
+              Paste a shareable link from SharePoint, OneDrive, or any accessible URL.
+            </div>
+          </div>
+
+          <div class="doc-ferr" *ngIf="createError">⚠️ {{ createError }}</div>
+        </div>
+        <div class="doc-mfoot">
+          <button class="doc-cancel" (click)="closeCreateModal()">Cancel</button>
+          <button class="doc-primary"
+                  [disabled]="!isCreateFormValid() || isCreating"
+                  (click)="submitCreate()">
+            {{ isCreating ? 'Creating…' : 'Create Document' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── View Modal ──────────────────────────────────────────── -->
+    <div class="doc-overlay" *ngIf="showViewModal && viewDoc" (click)="closeViewModal()">
+      <div class="doc-modal doc-modal-md" (click)="$event.stopPropagation()">
+        <div class="doc-mhead">
+          <div class="doc-mtitle">Document Details</div>
+          <button class="doc-mclose" (click)="closeViewModal()">×</button>
+        </div>
+        <div class="doc-mbody">
+
+          <div class="doc-meta-grid">
+            <div>
+              <div class="doc-mlabel">Document ID</div>
+              <div class="doc-mvalue doc-id">DOC-{{ viewDoc.documentID }}</div>
+            </div>
+            <div>
+              <div class="doc-mlabel">Status</div>
+              <div><span [class]="getStatusClass(viewDoc.status)">{{ viewDoc.status }}</span></div>
+            </div>
+            <div>
+              <div class="doc-mlabel">Title</div>
+              <div class="doc-mvalue">{{ viewDoc.title }}</div>
+            </div>
+            <div>
+              <div class="doc-mlabel">Type</div>
+              <div class="doc-mvalue">{{ getTypelabel(viewDoc.type) }}</div>
+            </div>
+            <div>
+              <div class="doc-mlabel">Protocol</div>
+              <div class="doc-mvalue">{{ viewDoc.protocolTitle }}</div>
+            </div>
+            <div>
+              <div class="doc-mlabel">Version</div>
+              <div class="doc-mvalue">{{ viewDoc.version }}</div>
+            </div>
+            <div>
+              <div class="doc-mlabel">Uploaded by</div>
+              <div class="doc-mvalue">{{ viewDoc.uploaderName }}</div>
+            </div>
+            <div>
+              <div class="doc-mlabel">Uploaded</div>
+              <div class="doc-mvalue">{{ viewDoc.uploadedAt | date:'dd MMM yyyy, HH:mm' }}</div>
+            </div>
+          </div>
+
+          <!-- View document link -->
+          <div class="doc-section">
+            <a [href]="viewDoc.fileURL" target="_blank" rel="noopener noreferrer"
+               style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;
+                      background:#1a3a8f;color:#fff;border-radius:9px;font-size:13px;
+                      font-weight:600;text-decoration:none;">
+              📎 Open Document
+            </a>
+            <div style="font-size:11px;color:#aaa;margin-top:6px;">
+              Opens in a new tab
+            </div>
+          </div>
+
+          <!-- Review info (if reviewed) -->
+          <div class="doc-section"
+               *ngIf="viewDoc.reviewedBy">
+            <div class="doc-mlabel" style="margin-bottom:8px;">Review Details</div>
+            <div class="doc-review-box">
+              <div style="margin-bottom:6px;">
+                <strong>Reviewed by:</strong> {{ viewDoc.reviewerName }}
+              </div>
+              <div style="margin-bottom:6px;">
+                <strong>Date:</strong> {{ viewDoc.reviewedAt | date:'dd MMM yyyy, HH:mm' }}
+              </div>
+              <div *ngIf="viewDoc.reviewNotes">
+                <strong>Notes:</strong> {{ viewDoc.reviewNotes }}
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="doc-mfoot">
+          <button class="doc-cancel" (click)="closeViewModal()">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Review Modal ────────────────────────────────────────── -->
+    <div class="doc-overlay" *ngIf="showReviewModal && reviewDoc" (click)="closeReviewModal()">
+      <div class="doc-modal doc-modal-sm" (click)="$event.stopPropagation()">
+        <div class="doc-mhead">
+          <div class="doc-mtitle">Review Document</div>
+          <button class="doc-mclose" (click)="closeReviewModal()">×</button>
+        </div>
+        <div class="doc-mbody">
+
+          <!-- Document summary -->
+          <div style="background:#f7f8fc;border-radius:10px;padding:14px;margin-bottom:16px;">
+            <div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">
+              {{ reviewDoc.title }}
+            </div>
+            <div style="font-size:12px;color:#888;">
+              {{ getTypelabel(reviewDoc.type) }} · {{ reviewDoc.version }} ·
+              Protocol: {{ reviewDoc.protocolTitle }}
+            </div>
+            <a [href]="reviewDoc.fileURL" target="_blank" rel="noopener noreferrer"
+               style="display:inline-block;margin-top:8px;font-size:12px;color:#1a3a8f;font-weight:500;">
+              📎 Open document to review →
+            </a>
+          </div>
+
+          <!-- Approve / Reject toggle -->
+          <div class="doc-fg">
+            <label class="doc-lbl">Your decision *</label>
+            <div class="doc-toggle-row">
+              <button class="doc-toggle-btn approve"
+                      [class.active]="reviewApprove"
+                      (click)="reviewApprove = true; reviewError = ''">
+                ✅ Approve
+              </button>
+              <button class="doc-toggle-btn reject"
+                      [class.active]="!reviewApprove"
+                      (click)="reviewApprove = false">
+                ❌ Reject
+              </button>
+            </div>
+          </div>
+
+          <!-- Review notes -->
+          <div class="doc-fg">
+            <label class="doc-lbl">
+              Review Notes
+              <span *ngIf="!reviewApprove" style="color:#c0392b;">*</span>
+            </label>
+            <textarea class="doc-ta" rows="4"
+                      [placeholder]="reviewApprove
+                        ? 'Optional — add any approval notes or conditions.'
+                        : 'Required — explain what needs to be corrected before resubmission.'"
+                      [(ngModel)]="reviewNotes">
+            </textarea>
+            <div class="doc-hint" *ngIf="!reviewApprove">
+              The uploader will receive this as a notification. Be specific about what to fix.
+            </div>
+          </div>
+
+          <div class="doc-ferr" *ngIf="reviewError">⚠️ {{ reviewError }}</div>
+          <div class="doc-fsuc" *ngIf="reviewSuccess">{{ reviewSuccess }}</div>
+
+        </div>
+        <div class="doc-mfoot">
+          <button class="doc-cancel" (click)="closeReviewModal()">Cancel</button>
+          <button [class]="reviewApprove ? 'doc-primary' : 'doc-btn doc-btn-delete'"
+                  [style.padding]="'10px 22px'"
+                  [disabled]="isReviewing"
+                  (click)="submitReview()">
+            <span *ngIf="!isReviewing">
+              {{ reviewApprove ? 'Approve Document' : 'Reject Document' }}
+            </span>
+            <span *ngIf="isReviewing">Submitting…</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

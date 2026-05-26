@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // PatientService.API / Services / EnrollmentService.cs
+// WITH CACHING — No changes needed (caching at repo level)
 // ============================================================
 
 using LifeTrack.PatientService.DTOs;
@@ -21,6 +22,7 @@ namespace LifeTrack.PatientService.Services
             _audit = audit;
         }
 
+        // ✅ Caching is handled at repository level
         public async Task<ApiResponse<List<EnrollmentDto>>> GetAllAsync(EnrollmentFilterDto filter)
             => ApiResponse<List<EnrollmentDto>>.Ok(await _repo.GetAllAsync(filter));
 

@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // UserService.API / Services / Interfaces / IUserService.cs
+// NO DELETE METHOD — Updated
 // ============================================================
 
 using LifeTrack.Shared.Wrappers;
@@ -13,6 +14,6 @@ namespace LifeTrack.UserService.Services.Interfaces
         Task<ApiResponse<UserDto>> GetByIdAsync(long id);
         Task<ApiResponse<UserDto>> UpdateAsync(long id, UpdateUserRequest req);
         Task<ApiResponse<UserDto>> ToggleActiveAsync(long id);
-        Task<ApiResponse<bool>> DeleteAsync(long id);
+        // ❌ DELETE REMOVED
     }
 }

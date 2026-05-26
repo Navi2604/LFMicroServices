@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // UserService.API / Services / NotificationService.cs
+// NO DELETE METHOD — Updated
 // ============================================================
 
 using LifeTrack.Shared.Wrappers;
@@ -46,12 +47,6 @@ namespace LifeTrack.UserService.Services
             return ApiResponse<bool>.Ok(true, "All notifications marked as read.");
         }
 
-        public async Task<ApiResponse<bool>> DeleteAsync(long id)
-        {
-            var deleted = await _repo.DeleteAsync(id);
-            return deleted
-                ? ApiResponse<bool>.Ok(true, "Notification deleted.")
-                : ApiResponse<bool>.Fail("Notification not found.");
-        }
+        // ❌ DELETE REMOVED — Notifications are marked as read, not deleted
     }
 }

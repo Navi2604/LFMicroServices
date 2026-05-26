@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // UserService.API / Controllers / NotificationController.cs
+// NO DELETE ENDPOINT — Updated
 // ============================================================
 
 using LifeTrack.UserService.DTOs;
@@ -53,12 +54,6 @@ namespace LifeTrack.UserService.Controllers
         public async Task<IActionResult> MarkAllAsRead(long userId)
             => Ok(await _service.MarkAllAsReadAsync(userId));
 
-        // DELETE /api/notifications/{id}
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(long id)
-        {
-            var result = await _service.DeleteAsync(id);
-            return result.Success ? Ok(result) : NotFound(result);
-        }
+        // ❌ DELETE REMOVED — Not used in frontend
     }
 }

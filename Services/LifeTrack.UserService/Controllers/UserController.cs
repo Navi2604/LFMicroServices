@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // UserService.API / Controllers / UserController.cs
+// NO DELETE ENDPOINT — Updated
 // ============================================================
 
 using LifeTrack.Shared.Wrappers;
@@ -52,13 +53,6 @@ namespace LifeTrack.UserService.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        // DELETE /api/users/{id}
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Delete(long id)
-        {
-            var result = await _service.DeleteAsync(id);
-            return result.Success ? Ok(result) : BadRequest(result);
-        }
+        // ❌ DELETE REMOVED — Not used in frontend
     }
 }

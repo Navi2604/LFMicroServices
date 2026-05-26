@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // ProtocolService.API / Services / ProtocolService.cs
+// ADDED: UnarchiveAsync
 // ============================================================
 
 using LifeTrack.ProtocolService.DTOs;
@@ -15,67 +16,67 @@ namespace LifeTrack.ProtocolService.Services
 
         public ProtocolService(IProtocolRepository repo) => _repo = repo;
 
-        // ── Status calculation (always server-side) ───────────────────────────
-
-        private static string ComputeStatus(DateTime startDate, DateTime endDate)
+        private static string ComputeStatus(DateTime start, DateTime end)
         {
             var today = DateTime.Today;
-            if (today > endDate.Date) return "Completed";
-            if (today >= startDate.Date) return "Ongoing";
+            if (today > end.Date) return "Completed";
+            if (today >= start.Date) return "Ongoing";
             return "Upcoming";
         }
 
-        // ── Get All ───────────────────────────────────────────────────────────
-
         public async Task<ApiResponse<List<ProtocolDto>>> GetAllAsync(ProtocolFilterDto filter)
-        {
-            var data = await _repo.GetAllAsync(filter);
-            return ApiResponse<List<ProtocolDto>>.Ok(data);
-        }
-
-        // ── Get By Id ─────────────────────────────────────────────────────────
+            => ApiResponse<List<ProtocolDto>>.Ok(await _repo.GetAllAsync(filter));
 
         public async Task<ApiResponse<ProtocolDto>> GetByIdAsync(long id)
         {
-            var protocol = await _repo.GetByIdAsync(id);
-            if (protocol == null)
-                return ApiResponse<ProtocolDto>.Fail($"Protocol with ID {id} not found.");
-            return ApiResponse<ProtocolDto>.Ok(protocol);
+            var p = await _repo.GetByIdAsync(id);
+            return p == null
+                ? ApiResponse<ProtocolDto>.Fail($"Protocol {id} not found.")
+                : ApiResponse<ProtocolDto>.Ok(p);
         }
-
-        // ── Create ────────────────────────────────────────────────────────────
 
         public async Task<ApiResponse<ProtocolDto>> CreateAsync(CreateProtocolRequest req)
         {
-            var computedStatus = ComputeStatus(req.StartDate, req.EndDate);
-            var result = await _repo.CreateAsync(req, computedStatus);
+            var status = ComputeStatus(req.StartDate, req.EndDate);
+            var result = await _repo.CreateAsync(req, status);
             return ApiResponse<ProtocolDto>.Ok(result);
         }
-
-        // ── Update ────────────────────────────────────────────────────────────
 
         public async Task<ApiResponse<bool>> UpdateAsync(long id, UpdateProtocolRequest req)
         {
             var existing = await _repo.GetByIdAsync(id);
             if (existing == null)
-                return ApiResponse<bool>.Fail($"Protocol with ID {id} not found.");
+                return ApiResponse<bool>.Fail($"Protocol {id} not found.");
 
-            var computedStatus = ComputeStatus(req.StartDate, req.EndDate);
-            var success = await _repo.UpdateAsync(id, req, computedStatus);
+            var status = ComputeStatus(req.StartDate, req.EndDate);
+            var success = await _repo.UpdateAsync(id, req, status);
             return success
                 ? ApiResponse<bool>.Ok(true)
                 : ApiResponse<bool>.Fail("Update failed.");
         }
 
-        // ── Delete ────────────────────────────────────────────────────────────
-
         public async Task<ApiResponse<bool>> ArchiveAsync(long id)
         {
             try
             {
-                var archived = await _repo.ArchiveAsync(id);
-                return archived
+                var ok = await _repo.ArchiveAsync(id);
+                return ok
                     ? ApiResponse<bool>.Ok(true, "Protocol archived successfully.")
+                    : ApiResponse<bool>.Fail("Protocol not found.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ApiResponse<bool>.Fail(ex.Message);
+            }
+        }
+
+        public async Task<ApiResponse<bool>> UnarchiveAsync(long id)
+        {
+            try
+            {
+                var ok = await _repo.UnarchiveAsync(id);
+                return ok
+                    ? ApiResponse<bool>.Ok(true, "Protocol restored successfully.")
                     : ApiResponse<bool>.Fail("Protocol not found.");
             }
             catch (InvalidOperationException ex)
@@ -88,10 +89,10 @@ namespace LifeTrack.ProtocolService.Services
         {
             try
             {
-                var deleted = await _repo.DeleteAsync(id);
-                return deleted
+                var ok = await _repo.DeleteAsync(id);
+                return ok
                     ? ApiResponse<bool>.Ok(true, "Protocol permanently deleted.")
-                    : ApiResponse<bool>.Fail($"Protocol with ID {id} not found.");
+                    : ApiResponse<bool>.Fail($"Protocol {id} not found.");
             }
             catch (InvalidOperationException ex)
             {

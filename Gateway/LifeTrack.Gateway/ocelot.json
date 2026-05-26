@@ -10,7 +10,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/auth/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ]
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ]
         },
         {
             "DownstreamPathTemplate": "/api/users",
@@ -22,7 +28,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/users",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -38,7 +50,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/users/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -54,7 +72,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/roles",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -70,7 +94,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/roles/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -86,7 +116,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/notifications",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -102,7 +138,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/notifications/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -118,7 +160,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/patients",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -134,7 +182,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/patients/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -150,7 +204,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/enrollments",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -166,7 +226,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/enrollments/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -182,7 +248,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/adverse-events",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -198,7 +270,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/adverse-events/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -214,7 +292,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/protocols",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -230,7 +314,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/protocols/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -246,7 +336,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/kpi-reports",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -262,7 +358,57 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/kpi-reports/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
+            "DownstreamPathTemplate": "/api/documents",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5005
+                }
+            ],
+            "UpstreamPathTemplate": "/api/documents",
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
+            "DownstreamPathTemplate": "/api/documents/{everything}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5005
+                }
+            ],
+            "UpstreamPathTemplate": "/api/documents/{everything}",
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -278,7 +424,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/sites",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -294,7 +446,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/sites/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -310,7 +468,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/site-protocols",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -326,7 +490,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/site-protocols/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -342,7 +512,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/deviations",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -358,7 +534,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/deviations/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -374,7 +556,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/visits",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -390,7 +578,13 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/visits/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "PATCH" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -406,7 +600,10 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/audit",
-            "UpstreamHttpMethod": [ "GET", "POST" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -422,7 +619,10 @@
                 }
             ],
             "UpstreamPathTemplate": "/api/audit/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST" ],
+            "UpstreamHttpMethod": [
+                "GET",
+                "POST"
+            ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []

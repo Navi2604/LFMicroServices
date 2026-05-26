@@ -1,5 +1,6 @@
 ﻿// ============================================================
 // SiteService.API / Services / SiteProtocolService.cs
+// WITH DELETE — Caching at repo level
 // ============================================================
 
 using LifeTrack.Shared.Wrappers;
@@ -14,6 +15,8 @@ namespace LifeTrack.SiteService.Services
         private readonly ISiteProtocolRepository _repo;
 
         public SiteProtocolService(ISiteProtocolRepository repo) => _repo = repo;
+
+        // ✅ Caching is handled at repository level
 
         public async Task<ApiResponse<List<SiteProtocolDto>>> GetAllAsync(SiteProtocolFilterDto filter)
             => ApiResponse<List<SiteProtocolDto>>.Ok(await _repo.GetAllAsync(filter));

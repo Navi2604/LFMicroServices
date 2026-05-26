@@ -10,7 +10,7 @@ namespace LifeTrack.PatientService.Repositories.Interfaces
     {
         Task<List<AdverseEventDto>> GetAllAsync(AdverseEventFilterDto filter);
         Task<AdverseEventDto> CreateAsync(CreateAdverseEventRequest req);
-        Task<bool> UpdateStatusAsync(long id, string status);
+        Task<bool> UpdateStatusAsync(long id, string status, string updaterRole);
         Task<bool> DeleteAsync(long id);
     }
 }
