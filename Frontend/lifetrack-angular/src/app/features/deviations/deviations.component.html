@@ -1,0 +1,422 @@
+<style>
+.dv-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.dv-tab{padding:8px 18px;border-radius:24px;border:1px solid #e5e7eb;background:#fff;font-size:13px;font-weight:500;color:#555;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.15s;}
+.dv-tab:hover{border-color:#c7d2fe;}
+.dv-tab.active{background:#1a3a8f;border-color:#1a3a8f;color:#fff;}
+.dv-tab-count{background:rgba(0,0,0,0.08);padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+.dv-tab.active .dv-tab-count{background:rgba(255,255,255,0.25);color:#fff;}
+.dv-controls{display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
+.dv-search{flex:1;min-width:240px;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;outline:none;background:#fff;}
+.dv-search:focus{border-color:#1a3a8f;}
+.dv-select{padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;background:#fff;outline:none;cursor:pointer;min-width:160px;}
+.dv-select:focus{border-color:#1a3a8f;}
+.dv-table-wrap{background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;}
+.dv-table{width:100%;border-collapse:collapse;}
+.dv-table th{text-align:left;padding:14px 16px;background:#f7f8fc;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #e5e7eb;}
+.dv-table td{padding:14px 16px;font-size:13px;color:#1a1a2e;border-bottom:1px solid #f5f5f8;}
+.dv-table tr:last-child td{border-bottom:none;}
+.dv-table tr:hover td{background:#fafbfc;}
+.dv-id{font-family:'SF Mono','Consolas',monospace;font-size:12px;color:#1a3a8f;font-weight:500;}
+.dv-site{font-weight:500;}
+.dv-protocol{color:#666;font-size:12px;}
+.dv-desc{color:#666;font-size:12px;max-width:240px;}
+.dv-pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.dv-pill-green{background:#e6f4ea;color:#1e7e34;}
+.dv-pill-amber{background:#fef3e2;color:#b45309;}
+.dv-pill-orange{background:#fff1e6;color:#c2410c;}
+.dv-pill-red{background:#fce8e6;color:#c0392b;}
+.dv-pill-blue{background:#e8f0fe;color:#1a56db;}
+.dv-pill-teal{background:#e0f2f1;color:#00796b;}
+.dv-pill-gray{background:#f3f4f6;color:#6b7280;}
+.dv-btn{padding:6px 14px;border:1px solid #1a3a8f;background:#fff;color:#1a3a8f;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.12s;}
+.dv-btn:hover{background:#1a3a8f;color:#fff;}
+.dv-btn-primary{background:#1a3a8f;color:#fff;padding:8px 18px;font-size:13px;}
+.dv-btn-primary:hover{background:#152d6e;}
+.dv-btn[disabled]{opacity:0.5;cursor:not-allowed;}
+.dv-btn-primary[disabled]:hover{background:#1a3a8f;}
+.dv-empty{padding:48px 20px;text-align:center;color:#aaa;font-size:13px;}
+.dv-empty-icon{font-size:42px;margin-bottom:10px;opacity:0.4;}
+.dv-error{background:#fce8e6;border:1px solid #f5c5c1;color:#c0392b;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:16px;}
+.dv-success{background:#e6f4ea;border:1px solid #b7e0c2;color:#1e7e34;padding:8px 12px;border-radius:8px;font-size:13px;margin-top:10px;}
+.dv-page-title{font-size:24px;font-weight:700;color:#1a1a2e;margin-bottom:2px;}
+.dv-page-sub{font-size:13px;color:#888;margin-bottom:20px;}
+
+/* Modal */
+.dv-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;animation:dv-fade 0.15s;}
+@keyframes dv-fade{from{opacity:0;}to{opacity:1;}}
+.dv-modal{background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:90vh;display:flex;flex-direction:column;animation:dv-pop 0.2s;}
+@keyframes dv-pop{from{transform:scale(0.95);opacity:0;}to{transform:scale(1);opacity:1;}}
+.dv-modal-header{padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;}
+.dv-modal-title{font-size:18px;font-weight:700;color:#1a1a2e;}
+.dv-modal-close{background:none;border:none;font-size:24px;color:#888;cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.dv-modal-close:hover{background:#f3f4f6;color:#1a1a2e;}
+.dv-modal-body{padding:22px 24px;overflow-y:auto;flex:1;}
+.dv-modal-footer{padding:14px 24px;border-top:1px solid #e5e7eb;display:flex;gap:10px;justify-content:flex-end;background:#fafbfc;}
+.dv-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:6px;}
+.dv-meta-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;}
+.dv-meta-value{font-size:14px;color:#1a1a2e;}
+.dv-section{padding-top:16px;border-top:1px solid #f5f5f8;margin-top:16px;}
+.dv-desc-box{background:#f7f8fc;padding:12px 14px;border-radius:10px;font-size:13px;color:#444;line-height:1.5;margin-top:6px;}
+.dv-update-section{background:#fff8e6;padding:16px;border-radius:10px;border:1px solid #fde68a;margin-top:16px;}
+.dv-update-title{font-size:14px;font-weight:600;color:#92400e;margin-bottom:4px;}
+.dv-update-help{font-size:12px;color:#a16207;margin-bottom:10px;}
+.dv-readonly-notice{background:#f7f8fc;padding:12px 16px;border-radius:10px;border:1px solid #e5e7eb;color:#888;font-size:13px;margin-top:16px;}
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+
+  <div class="lt-main">
+
+    <!-- Topbar -->
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <span class="current">LifeTrack</span>
+        <span class="sep">/</span>
+        <span class="current">Deviations</span>
+      </div>
+      <div class="lt-topbar-right">
+        <button class="lt-notif-btn" routerLink="/notifications">
+          🔔<span class="dot" *ngIf="unreadCount > 0"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="lt-content">
+
+      <!-- Page header -->
+      <div class="dv-page-title">Protocol Deviations</div>
+      <div class="dv-page-sub">
+        {{ filtered.length }} of {{ items.length }} deviations shown
+        <span *ngIf="canReview">· You can review and update status</span>
+      </div>
+
+      <!-- Error banner -->
+      <div class="dv-error" *ngIf="errorMsg">⚠️ {{ errorMsg }}</div>
+
+      <!-- Status tabs -->
+      <div class="dv-tabs">
+        <div class="dv-tab" [class.active]="activeTab==='all'"           (click)="switchTab('all')">All <span class="dv-tab-count">{{ items.length }}</span></div>
+        <div class="dv-tab" [class.active]="activeTab==='Reported'"      (click)="switchTab('Reported')">Reported <span class="dv-tab-count">{{ countByStatus('Reported') }}</span></div>
+        <div class="dv-tab" [class.active]="activeTab==='Under Review'"  (click)="switchTab('Under Review')">Under Review <span class="dv-tab-count">{{ countByStatus('Under Review') }}</span></div>
+        <div class="dv-tab" [class.active]="activeTab==='Resolved'"      (click)="switchTab('Resolved')">Resolved <span class="dv-tab-count">{{ countByStatus('Resolved') }}</span></div>
+        <div class="dv-tab" [class.active]="activeTab==='Accepted'"      (click)="switchTab('Accepted')">Accepted <span class="dv-tab-count">{{ countByStatus('Accepted') }}</span></div>
+        <div class="dv-tab" [class.active]="activeTab==='Rejected'"      (click)="switchTab('Rejected')">Rejected <span class="dv-tab-count">{{ countByStatus('Rejected') }}</span></div>
+      </div>
+
+      <!-- Search + severity filter -->
+      <div class="dv-controls">
+        <input class="dv-search" type="text"
+               placeholder="🔍 Search by site, protocol, or description…"
+               [(ngModel)]="searchQuery"
+               (ngModelChange)="onSearchChange()" />
+
+        <select class="dv-select"
+                [(ngModel)]="severityFilter"
+                (ngModelChange)="onSeverityChange()">
+          <option value="all">All severities</option>
+          <option value="Minor">Minor</option>
+          <option value="Major">Major</option>
+          <option value="Critical">Critical</option>
+        </select>
+
+        <button class="dv-btn" (click)="exportToCsv()"
+          *ngIf="filtered.length > 0"
+          title="Export current view to CSV">
+        ⬇ Export CSV
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="dv-table-wrap">
+        <table class="dv-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Site</th>
+              <th>Protocol</th>
+              <th>Description</th>
+              <th>Severity</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of paginated">
+              <td><span class="dv-id">DEV-{{ d.deviationID }}</span></td>
+              <td><span class="dv-site">{{ getSiteName(d.siteProtocolID) }}</span></td>
+              <td><span class="dv-protocol">{{ getProtocolTitle(d.siteProtocolID) }}</span></td>
+              <td (click)="isDM ? openQuickEdit(d,'description') : openDetailOverlay('Description', d.description)"
+                style="cursor:pointer" [title]="isDM && d.status==='Reported' ? 'Click to edit description' : ''">
+                <span class="dv-desc">{{ truncate(d.description) }}</span>
+                <span *ngIf="d.dmEdited" style="margin-left:5px;font-size:9px;font-weight:700;background:#EEEDFE;color:#3C3489;padding:1px 5px;border-radius:4px;display:inline-block;vertical-align:middle;">✏ DM</span>
+              </td>
+              <td (click)="isDM && d.status==='Reported' ? openQuickEdit(d,'severity') : null"
+                [style.cursor]="isDM && d.status==='Reported' ? 'pointer' : 'default'">
+                <span [class]="getSeverityClass(d.severity)">{{ d.severity }}</span>
+                <span *ngIf="isDM && d.status==='Reported'" style="font-size:10px;color:#aaa;margin-left:3px;">✎</span>
+              </td>
+              <td><span [class]="getStatusClass(d.status)">{{ d.status }}</span></td>
+              <td>
+                <button class="dv-btn" *ngIf="canEdit && d.status === 'Reported'"
+                  (click)="openEdit(d)"
+                  style="background:#f59e0b;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">
+                  ✏ Edit
+                </button>
+                <button class="dv-btn" *ngIf="canReview" (click)="openReview(d)">Review</button>
+                <button class="dv-btn" *ngIf="!canReview && !isDM" (click)="openReview(d)">View</button>
+              </td>
+            </tr>
+            <tr *ngIf="!isLoading && filtered.length === 0">
+              <td colspan="7">
+                <div class="dv-empty">
+                  <div class="dv-empty-icon">📐</div>
+                  <div *ngIf="items.length === 0">No protocol deviations reported yet.</div>
+                  <div *ngIf="items.length > 0">No deviations match the current filters.</div>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="isLoading">
+              <td colspan="7"><div class="dv-empty">Loading…</div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+
+<!-- ── Pagination ──────────────────────────────────────────────── -->
+<div *ngIf="!isLoading && totalPages > 1"
+     style="display:flex;align-items:center;justify-content:space-between;
+            margin-top:16px;padding:14px 16px;background:#f9fafb;
+            border:1px solid #e5e7eb;border-radius:10px;flex-wrap:wrap;gap:10px;">
+  <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;">
+    <label>Per page:</label>
+    <select [(ngModel)]="pageSize" (change)="changePageSize(pageSize)"
+            style="padding:5px 10px;border:1px solid #dde1f0;border-radius:6px;font-size:13px;">
+      <option *ngFor="let s of itemsPerPageOptions" [value]="s">{{ s }}</option>
+    </select>
+  </div>
+  <div style="font-size:13px;color:#666;font-weight:500;">
+    Page {{ currentPage }} of {{ totalPages }} &middot; {{ filtered.length }} total
+  </div>
+  <div style="display:flex;gap:4px;align-items:center;">
+    <button (click)="prevPage()" [disabled]="currentPage === 1"
+            style="padding:5px 10px;border:1px solid #dde1f0;border-radius:6px;
+                   background:#fff;cursor:pointer;font-size:12px;"
+            [style.opacity]="currentPage === 1 ? '0.4' : '1'">&#8592; Prev</button>
+    <button *ngFor="let p of getPageNumbers()" (click)="goToPage(p)"
+            style="padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;"
+            [style.background]="p === currentPage ? '#1a3a8f' : '#fff'"
+            [style.color]="p === currentPage ? '#fff' : '#555'"
+            [style.border]="p === currentPage ? '1px solid #1a3a8f' : '1px solid #dde1f0'">
+      {{ p }}
+    </button>
+    <button (click)="nextPage()" [disabled]="currentPage === totalPages"
+            style="padding:5px 10px;border:1px solid #dde1f0;border-radius:6px;
+                   background:#fff;cursor:pointer;font-size:12px;"
+            [style.opacity]="currentPage === totalPages ? '0.4' : '1'">Next &#8594;</button>
+  </div>
+</div>
+
+    </div>
+
+    <!-- ── Review Modal ─────────────────────────────────────────── -->
+    <div class="dv-modal-overlay" *ngIf="showModal && selected" (click)="closeModal()">
+      <div class="dv-modal" (click)="$event.stopPropagation()">
+
+        <div class="dv-modal-header">
+          <div class="dv-modal-title">
+            <span *ngIf="canReview">Review Deviation</span>
+            <span *ngIf="!canReview">Deviation Details</span>
+          </div>
+          <button class="dv-modal-close" (click)="closeModal()">×</button>
+        </div>
+
+        <div class="dv-modal-body">
+
+          <!-- Meta -->
+          <div class="dv-meta-grid">
+            <div>
+              <div class="dv-meta-label">Deviation ID</div>
+              <div class="dv-meta-value dv-id">DEV-{{ selected.deviationID }}</div>
+            </div>
+            <div>
+              <div class="dv-meta-label">SiteProtocol ID</div>
+              <div class="dv-meta-value">SP-{{ selected.siteProtocolID }}</div>
+            </div>
+            <div>
+              <div class="dv-meta-label">Site</div>
+              <div class="dv-meta-value">{{ getSiteName(selected.siteProtocolID) }}</div>
+            </div>
+            <div>
+              <div class="dv-meta-label">Protocol</div>
+              <div class="dv-meta-value">{{ getProtocolTitle(selected.siteProtocolID) }}</div>
+            </div>
+            <div>
+              <div class="dv-meta-label">Investigator</div>
+              <div class="dv-meta-value">{{ getInvestigatorName(selected.siteProtocolID) }}</div>
+            </div>
+            <div>
+              <div class="dv-meta-label">Severity</div>
+              <div><span [class]="getSeverityClass(selected.severity)">{{ selected.severity }}</span></div>
+            </div>
+          </div>
+
+          <!-- Current status -->
+          <div class="dv-section">
+            <div class="dv-meta-label">Current Status</div>
+            <div style="margin-top:6px;"><span [class]="getStatusClass(selected.status)">{{ selected.status }}</span></div>
+          </div>
+
+          <!-- Description -->
+          <div class="dv-section">
+            <div class="dv-meta-label">Description</div>
+            <div class="dv-desc-box">{{ selected.description }}</div>
+          </div>
+
+          <!-- Update controls (canReview only) -->
+          <div class="dv-update-section" *ngIf="canReview">
+            <div class="dv-update-title">Update Status</div>
+            <div class="dv-update-help">
+              Accepted = minor, no action needed · Resolved = corrected · Rejected = not a real deviation
+            </div>
+
+            <select class="dv-select" style="width:100%; min-width:0;"
+                    [(ngModel)]="newStatus"
+                    [disabled]="isUpdating">
+              <option value="Reported">Reported</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Resolved">Resolved</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+
+            <div class="dv-error"   *ngIf="updateError">⚠️ {{ updateError }}</div>
+            <div class="dv-success" *ngIf="updateSuccess">✓ {{ updateSuccess }}</div>
+          </div>
+
+          <!-- Read-only notice -->
+          <div class="dv-readonly-notice" *ngIf="!canReview">
+            🔒 You're viewing this deviation in read-only mode. Only Clinical Trial Managers,
+            Administrators, and Regulatory Officers can update status.
+          </div>
+
+        </div>
+
+        <div class="dv-modal-footer">
+          <button class="dv-btn" (click)="closeModal()">Close</button>
+          <button class="dv-btn dv-btn-primary"
+                  *ngIf="canReview"
+                  [disabled]="!newStatus || newStatus === selected.status || isUpdating"
+                  (click)="updateStatus()">
+            <span *ngIf="!isUpdating">Update Status</span>
+            <span *ngIf="isUpdating">Updating…</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Edit Deviation Modal (Investigator — Reported only) -->
+<div *ngIf="showEditModal"
+  style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);
+         z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:14px;padding:28px 32px;width:100%;max-width:480px;
+              box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div style="font-size:16px;font-weight:700;color:#1a1a2e;">&#9998; Edit Deviation</div>
+      <button (click)="closeEdit()" style="background:transparent;border:none;font-size:22px;cursor:pointer;color:#aaa;">&#x2715;</button>
+    </div>
+    <div *ngIf="editError" style="background:#fce8e6;color:#c0392b;padding:9px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;">{{ editError }}</div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">Description *</label>
+      <textarea [(ngModel)]="editForm.description" rows="4"
+        style="width:100%;padding:10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;resize:vertical;outline:none;font-family:inherit;box-sizing:border-box;">
+      </textarea>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">Severity *</label>
+      <select [(ngModel)]="editForm.severity"
+        style="width:100%;padding:10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;">
+        <option value="Minor">Minor</option>
+        <option value="Major">Major</option>
+        <option value="Critical">Critical</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button (click)="closeEdit()" style="padding:9px 18px;border:1px solid #dde1f0;border-radius:8px;background:#fff;color:#555;font-size:13px;cursor:pointer;">Cancel</button>
+      <button (click)="saveEdit()" [disabled]="editSaving"
+        style="padding:9px 18px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;"
+        [style.opacity]="editSaving ? '0.6' : '1'">
+        {{ editSaving ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DM Quick Edit Modal — Deviations -->
+<div *ngIf="showQuickEdit"
+  style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);
+         z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:14px;padding:26px 30px;width:100%;max-width:460px;
+              box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#1a1a2e;">
+          ✏ Edit {{ quickEditMode === 'description' ? 'Description' : 'Severity' }}
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:3px;">
+          DEV-{{ quickEditDev?.deviationID }}
+          <span style="background:#EEEDFE;color:#3C3489;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;margin-left:6px;">DM Edit</span>
+        </div>
+      </div>
+      <button (click)="closeQuickEdit()" style="background:transparent;border:none;font-size:20px;cursor:pointer;color:#aaa;">&#x2715;</button>
+    </div>
+    <div *ngIf="quickEditError" style="background:#fce8e6;color:#c0392b;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;">{{ quickEditError }}</div>
+    <!-- Description textarea -->
+    <div *ngIf="quickEditMode === 'description'" style="margin-bottom:16px;">
+      <label style="display:block;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Description *</label>
+      <textarea [(ngModel)]="quickEditValue" rows="4"
+        style="width:100%;padding:10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;resize:vertical;outline:none;font-family:inherit;box-sizing:border-box;"></textarea>
+    </div>
+    <!-- Severity dropdown -->
+    <div *ngIf="quickEditMode === 'severity'" style="margin-bottom:16px;">
+      <label style="display:block;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Severity *</label>
+      <select [(ngModel)]="quickEditValue"
+        style="width:100%;padding:10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;">
+        <option value="Minor">Minor</option>
+        <option value="Major">Major</option>
+        <option value="Critical">Critical</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button (click)="closeQuickEdit()" style="padding:8px 18px;border:1px solid #dde1f0;border-radius:8px;background:#fff;color:#555;font-size:13px;cursor:pointer;">Cancel</button>
+      <button (click)="submitQuickEdit()" [disabled]="quickEditSaving"
+        style="padding:8px 18px;background:#3C3489;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;"
+        [style.opacity]="quickEditSaving ? '0.6' : '1'">
+        {{ quickEditSaving ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Read-only Detail Overlay (non-DM full text view) -->
+<div *ngIf="showDetailOverlay"
+  style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);
+         z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:14px;padding:24px 28px;width:100%;max-width:420px;
+              box-shadow:0 16px 32px rgba(0,0,0,0.18);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:600;color:#1a1a2e;">{{ detailOverlayTitle }}</div>
+      <button (click)="closeDetailOverlay()" style="background:transparent;border:none;font-size:20px;cursor:pointer;color:#aaa;">&#x2715;</button>
+    </div>
+    <div style="font-size:13px;color:#333;line-height:1.6;white-space:pre-wrap;background:#f9fafb;
+                padding:12px;border-radius:8px;border:1px solid #e5e7eb;">{{ detailOverlayValue }}</div>
+    <div style="text-align:right;margin-top:14px;">
+      <button (click)="closeDetailOverlay()" style="padding:7px 18px;background:#1a3a8f;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;">Close</button>
+    </div>
+  </div>
+</div>

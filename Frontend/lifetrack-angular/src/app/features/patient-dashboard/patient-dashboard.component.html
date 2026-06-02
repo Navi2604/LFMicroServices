@@ -1,0 +1,190 @@
+<style>
+.pp-page-wrap{padding:0}
+.pp-hero{background:linear-gradient(135deg,#1a3a8f 0%,#2563eb 100%);border-radius:14px;padding:24px 28px;margin-bottom:20px;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.pp-hero-left h2{font-size:22px;font-weight:700;margin-bottom:4px}
+.pp-hero-left p{font-size:13px;opacity:.8}
+.pp-hero-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600}
+.pp-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.pp-kpi{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:16px 18px;border-top:3px solid transparent}
+.pp-kpi.blue{border-top-color:#2563eb}.pp-kpi.green{border-top-color:#16a34a}
+.pp-kpi.amber{border-top-color:#d97706}.pp-kpi.red{border-top-color:#dc2626}
+.pp-kpi-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px}
+.pp-kpi-icon.blue{background:#dbeafe}.pp-kpi-icon.green{background:#dcfce7}
+.pp-kpi-icon.amber{background:#fef3c7}.pp-kpi-icon.red{background:#fee2e2}
+.pp-kpi-val{font-size:26px;font-weight:700;color:var(--color-text-primary);line-height:1}
+.pp-kpi-lbl{font-size:11px;color:var(--color-text-secondary);margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.pp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.pp-panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;overflow:hidden}
+.pp-panel-head{padding:13px 18px;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px;font-weight:600;color:var(--color-text-primary);display:flex;justify-content:space-between;align-items:center}
+.pp-panel-body{padding:14px 18px}
+.pp-invite-card{border:1.5px solid #fde68a;border-left:4px solid #f59e0b;border-radius:10px;padding:16px 18px;margin-bottom:12px;background:#fffbeb}
+.pp-invite-title{font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:4px}
+.pp-invite-meta{font-size:12px;color:#888;margin-bottom:12px}
+.pp-invite-actions{display:flex;gap:8px}
+.pp-btn-accept{padding:7px 18px;border-radius:8px;background:#1a3a8f;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer}
+.pp-btn-decline{padding:7px 18px;border-radius:8px;background:transparent;color:#ef4444;border:1.5px solid #ef4444;font-size:13px;font-weight:500;cursor:pointer}
+.pp-withdrawal-card{border:1.5px solid #fca5a5;border-left:4px solid #ef4444;border-radius:10px;padding:16px 18px;margin-bottom:12px;background:#fff5f5}
+.pp-visit-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.pp-visit-row:last-child{border-bottom:none}
+.pp-visit-date{font-weight:600;font-size:13px;width:90px;flex-shrink:0;color:var(--color-text-primary)}
+.pp-visit-name{font-size:13px;color:var(--color-text-secondary);flex:1}
+.pp-badge{display:inline-flex;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600}
+.pp-badge-blue{background:#dbeafe;color:#1e40af}.pp-badge-green{background:#dcfce7;color:#166534}
+.pp-badge-amber{background:#fef3c7;color:#92400e}.pp-badge-red{background:#fee2e2;color:#991b1b}
+.pp-badge-gray{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.pp-next-visit{background:#dbeafe;border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.pp-next-days{font-size:28px;font-weight:700;color:#1d4ed8;line-height:1}
+.pp-empty{padding:24px;text-align:center;color:var(--color-text-tertiary);font-size:13px;background:var(--color-background-secondary);border-radius:8px}
+.pp-section-badge{font-size:11px;background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:10px;font-weight:600}
+.pp-link{font-size:12px;color:#2563eb;text-decoration:none;font-weight:500}
+.pp-active-enroll{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.pp-active-enroll:last-child{border-bottom:none}
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <span class="current">LifeTrack</span><span class="sep">/</span>
+        <span class="current">My Dashboard</span>
+      </div>
+    </div>
+    <div class="lt-content">
+
+      <!-- Hero -->
+      <div class="pp-hero">
+        <div class="pp-hero-left">
+          <h2>Welcome back, {{ userName }} 👋</h2>
+          <p>Your clinical trial participation overview</p>
+        </div>
+        <span class="pp-hero-badge">Patient Portal</span>
+      </div>
+
+      <div class="lt-alert lt-alert-success" *ngIf="successMsg">{{ successMsg }}</div>
+      <div class="lt-alert lt-alert-error"   *ngIf="errorMsg">{{ errorMsg }}</div>
+
+      <!-- KPI row -->
+      <div class="pp-kpi-grid">
+        <div class="pp-kpi blue">
+          <div class="pp-kpi-icon blue">🔔</div>
+          <div class="pp-kpi-val">{{ pendingInvitations.length + pendingWithdrawals.length }}</div>
+          <div class="pp-kpi-lbl">Pending actions</div>
+        </div>
+        <div class="pp-kpi green">
+          <div class="pp-kpi-icon green">✅</div>
+          <div class="pp-kpi-val">{{ activeEnrollments.length }}</div>
+          <div class="pp-kpi-lbl">Active trials</div>
+        </div>
+        <div class="pp-kpi amber">
+          <div class="pp-kpi-icon amber">📅</div>
+          <div class="pp-kpi-val">{{ upcomingVisits.length }}</div>
+          <div class="pp-kpi-lbl">Upcoming visits</div>
+        </div>
+        <div class="pp-kpi green">
+          <div class="pp-kpi-icon green">🏥</div>
+          <div class="pp-kpi-val">{{ attendedVisits }}<span style="font-size:14px;font-weight:400;color:#888">/{{ totalVisits }}</span></div>
+          <div class="pp-kpi-lbl">Visits attended</div>
+        </div>
+
+      </div>
+
+      <!-- Next visit banner -->
+      <div class="pp-next-visit" *ngIf="nextVisitDays !== null">
+        <div>
+          <div class="pp-next-days">{{ nextVisitDays === 0 ? 'Today' : nextVisitDays + 'd' }}</div>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#1e40af">
+            {{ nextVisitDays === 0 ? 'You have a visit today!' : nextVisitDays === 1 ? 'Your next visit is tomorrow' : 'Your next visit is in ' + nextVisitDays + ' days' }}
+          </div>
+          <div style="font-size:12px;color:#3b82f6;margin-top:2px">{{ nextVisitDate }}</div>
+        </div>
+        <a routerLink="/my-visits" class="pp-link" style="margin-left:auto">View all →</a>
+      </div>
+
+      <div class="lt-loading-row" *ngIf="isLoading"><span class="lt-spinner"></span> Loading...</div>
+
+      <div *ngIf="!isLoading">
+        <div class="pp-grid">
+
+          <!-- Pending invitations -->
+          <div class="pp-panel">
+            <div class="pp-panel-head">
+              Enrollment Invitations
+              <span class="pp-section-badge" *ngIf="pendingInvitations.length > 0">{{ pendingInvitations.length }} pending</span>
+            </div>
+            <div class="pp-panel-body">
+              <div *ngIf="pendingInvitations.length === 0" class="pp-empty">No pending invitations</div>
+              <div class="pp-invite-card" *ngFor="let e of pendingInvitations">
+                <div class="pp-invite-title">{{ e.protocolTitle || 'Clinical Trial' }}</div>
+                <div class="pp-invite-meta">
+                  Site: {{ e.siteName || '—' }} &nbsp;·&nbsp; Enrolled: {{ e.enrolledAt | date:'dd MMM yyyy' }}
+                </div>
+                <div class="pp-invite-actions">
+                  <button class="pp-btn-accept" (click)="accept(e.enrollmentID)">Accept</button>
+                  <button class="pp-btn-decline" (click)="decline(e.enrollmentID)">Decline</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upcoming visits -->
+          <div class="pp-panel">
+            <div class="pp-panel-head">
+              Upcoming Visits
+              <a routerLink="/my-visits" class="pp-link">View all →</a>
+            </div>
+            <div class="pp-panel-body">
+              <div *ngIf="upcomingVisits.length === 0" class="pp-empty">No upcoming visits scheduled</div>
+              <div class="pp-visit-row" *ngFor="let v of upcomingVisits">
+                <div class="pp-visit-date">{{ v.visitDate | date:'dd MMM' }}</div>
+                <div class="pp-visit-name">{{ v.notes || 'Visit' }}</div>
+                <span [class]="'pp-badge ' + visitStatusClass(v.status)">{{ v.status }}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Pending withdrawals -->
+        <div *ngIf="pendingWithdrawals.length > 0" style="margin-bottom:14px">
+          <div class="pp-panel">
+            <div class="pp-panel-head" style="background:#fff5f5;border-color:#fca5a5">
+              ⚠️ Withdrawal Requests
+            </div>
+            <div class="pp-panel-body">
+              <div class="pp-withdrawal-card" *ngFor="let e of pendingWithdrawals">
+                <div class="pp-invite-title">{{ e.protocolTitle || 'Clinical Trial' }}</div>
+                <div class="pp-invite-meta">A withdrawal has been requested for your enrollment.</div>
+                <div class="pp-invite-actions">
+                  <button class="pp-btn-accept" style="background:#ef4444" (click)="confirmWithdrawal(e.enrollmentID)">Confirm Withdrawal</button>
+                  <button class="pp-btn-decline" style="color:#1a3a8f;border-color:#1a3a8f" (click)="rejectWithdrawal(e.enrollmentID)">Stay Enrolled</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active trials -->
+        <div class="pp-panel" style="margin-bottom:14px">
+          <div class="pp-panel-head">
+            My Active Trials
+            <a routerLink="/my-protocol" class="pp-link">View details →</a>
+          </div>
+          <div class="pp-panel-body">
+            <div *ngIf="activeEnrollments.length === 0" class="pp-empty">You are not currently enrolled in any trial</div>
+            <div class="pp-active-enroll" *ngFor="let e of activeEnrollments">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--color-text-primary)">{{ e.protocolTitle || 'Trial' }}</div>
+                <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:2px">{{ e.siteName || '—' }}</div>
+              </div>
+              <span class="pp-badge pp-badge-green">Active</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

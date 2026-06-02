@@ -1,0 +1,137 @@
+<style>
+.mp-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:14px;margin-bottom:16px;overflow:hidden}
+.mp-card-head{padding:18px 22px;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;justify-content:space-between;align-items:flex-start}
+.mp-card-body{padding:18px 22px}
+.mp-proto-title{font-size:16px;font-weight:700;color:var(--color-text-primary);margin-bottom:4px}
+.mp-proto-dates{font-size:12px;color:var(--color-text-secondary)}
+.mp-status-active{background:#dcfce7;color:#166534;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;display:inline-block}
+.mp-status-completed{background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;display:inline-block}
+.mp-status-withdrawn{background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;display:inline-block}
+.mp-status-pending{background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;display:inline-block}
+.mp-status-amber{background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;display:inline-block}
+.mp-status-gray{background:var(--color-background-secondary);color:var(--color-text-secondary);padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;display:inline-block}
+.mp-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.mp-stat{background:var(--color-background-secondary);border-radius:8px;padding:12px;text-align:center}
+.mp-stat-val{font-size:22px;font-weight:700;color:var(--color-text-primary)}
+.mp-stat-lbl{font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-top:3px}
+.mp-bar-track{width:100%;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin:10px 0 4px}
+.mp-bar-fill{height:100%;border-radius:4px;transition:width .4s}
+.mp-meta-row{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:12px}
+.mp-meta-item{font-size:12px;color:var(--color-text-secondary)}
+.mp-meta-item strong{color:var(--color-text-primary);font-weight:600}
+.mp-next-visit{background:#dbeafe;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-top:10px}
+.mp-empty{padding:60px;text-align:center;color:var(--color-text-tertiary);font-size:14px;background:var(--color-background-secondary);border-radius:14px}
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <span class="current">LifeTrack</span><span class="sep">/</span>
+        <span class="current">My Protocol</span>
+      </div>
+    </div>
+    <div class="lt-content">
+
+      <div style="font-size:22px;font-weight:700;color:var(--color-text-primary);margin-bottom:4px">My Protocol</div>
+      <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:20px">
+        Your clinical trial enrollments and visit progress
+      </div>
+
+      <div class="lt-loading-row" *ngIf="isLoading"><span class="lt-spinner"></span> Loading...</div>
+
+      <!-- Empty state -->
+      <div *ngIf="!isLoading && protocols.length === 0" class="mp-empty">
+        <div style="font-size:40px;margin-bottom:12px">📋</div>
+        <div style="font-weight:600;margin-bottom:6px">No protocols found</div>
+        <div>You have not been enrolled in any clinical trial yet.</div>
+      </div>
+
+      <!-- Protocol cards -->
+      <div class="mp-card" *ngFor="let p of protocols">
+
+        <!-- Card header -->
+        <div class="mp-card-head">
+          <div>
+            <div class="mp-proto-title">{{ p.protocolTitle || 'Clinical Trial' }}</div>
+            <div class="mp-proto-dates">
+              Enrolled: {{ p.enrolledAt | date:'dd MMM yyyy' }}
+            </div>
+          </div>
+          <span [class]="enrollStatusClass(p.status)">{{ p.status }}</span>
+        </div>
+
+        <!-- Card body -->
+        <div class="mp-card-body">
+
+          <!-- Meta info -->
+          <!-- Site details -->
+          <div class="mp-meta-row">
+            <div class="mp-meta-item">🏥 Site: <strong>{{ p.siteName || '—' }}</strong></div>
+            <div class="mp-meta-item" *ngIf="p.siteEmail && p.siteEmail !== '—'">📧 <strong>{{ p.siteEmail }}</strong></div>
+            <div class="mp-meta-item" *ngIf="p.siteContact && p.siteContact !== '—'">📞 <strong>{{ p.siteContact }}</strong></div>
+          </div>
+          <!-- Investigator details -->
+          <div class="mp-meta-row">
+            <div class="mp-meta-item">👨‍⚕️ Investigator: <strong>{{ p.investigatorName || '—' }}</strong></div>
+            <div class="mp-meta-item" *ngIf="p.investigatorEmail && p.investigatorEmail !== '—'">📧 <strong>{{ p.investigatorEmail }}</strong></div>
+            <div class="mp-meta-item" *ngIf="p.investigatorContact && p.investigatorContact !== '—'">📞 <strong>{{ p.investigatorContact }}</strong></div>
+          </div>
+          <!-- Protocol -->
+          <div class="mp-meta-row">
+            <div class="mp-meta-item">🔬 Protocol: <strong>{{ p.protocolTitle || '—' }}</strong></div>
+          </div>
+
+          <!-- Visit stats -->
+          <div class="mp-stats-grid">
+            <div class="mp-stat">
+              <div class="mp-stat-val">{{ p.visitTotal }}</div>
+              <div class="mp-stat-lbl">Total</div>
+            </div>
+            <div class="mp-stat">
+              <div class="mp-stat-val" style="color:#16a34a">{{ p.visitAttended }}</div>
+              <div class="mp-stat-lbl">Attended</div>
+            </div>
+            <div class="mp-stat">
+              <div class="mp-stat-val" [style.color]="p.visitMissed > 0 ? '#dc2626' : 'inherit'">{{ p.visitMissed }}</div>
+              <div class="mp-stat-lbl">Missed</div>
+            </div>
+            <div class="mp-stat">
+              <div class="mp-stat-val" style="color:#2563eb">{{ p.visitUpcoming }}</div>
+              <div class="mp-stat-lbl">Upcoming</div>
+            </div>
+          </div>
+
+          <!-- Attendance progress bar -->
+          <div *ngIf="p.visitTotal > 0">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--color-text-secondary)">
+              <span>Visit attendance</span>
+              <span style="font-weight:600" [style.color]="barColor(p.attendancePct)">{{ p.attendancePct }}%</span>
+            </div>
+            <div class="mp-bar-track">
+              <div class="mp-bar-fill"
+                [style.width]="p.attendancePct + '%'"
+                [style.background]="barColor(p.attendancePct)">
+              </div>
+            </div>
+          </div>
+
+          <!-- Next visit -->
+          <div class="mp-next-visit" *ngIf="p.nextVisitDate">
+            <span style="font-size:20px">📅</span>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#1e40af">
+                Next visit: {{ p.nextVisitDate | date:'dd MMM yyyy' }}
+                <span style="font-weight:400;color:#3b82f6;margin-left:8px;font-size:12px">{{ daysUntil(p.nextVisitDate) }}</span>
+              </div>
+              <div style="font-size:12px;color:#3b82f6" *ngIf="p.nextVisitName">{{ p.nextVisitName }}</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

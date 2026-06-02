@@ -1,0 +1,111 @@
+<style>
+.mv-kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.mv-kpi{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:14px 16px;text-align:center;border-top:3px solid transparent}
+.mv-kpi.blue{border-top-color:#2563eb}.mv-kpi.green{border-top-color:#16a34a}
+.mv-kpi.red{border-top-color:#dc2626}.mv-kpi.amber{border-top-color:#d97706}
+.mv-kpi-val{font-size:28px;font-weight:700;color:var(--color-text-primary)}
+.mv-kpi-lbl{font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-top:4px}
+.mv-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--color-border-tertiary);padding-bottom:0}
+.mv-tab{padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer;border-radius:6px 6px 0 0;color:var(--color-text-secondary);border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-1px}
+.mv-tab.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:600}
+.mv-search{width:100%;padding:9px 14px;border:1px solid var(--color-border-secondary);border-radius:8px;font-size:13px;margin-bottom:16px;outline:none;box-sizing:border-box}
+.mv-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:16px 18px;margin-bottom:10px;display:flex;gap:16px;align-items:flex-start;border-left:4px solid transparent}
+.mv-card.mv-urgency-today{border-left-color:#dc2626;background:#fff5f5}
+.mv-card.mv-urgency-tomorrow{border-left-color:#d97706;background:#fffbeb}
+.mv-date-block{text-align:center;min-width:52px;flex-shrink:0}
+.mv-date-day{font-size:22px;font-weight:700;color:#1a1a2e;line-height:1}
+.mv-date-month{font-size:11px;color:#888;text-transform:uppercase}
+.mv-card-title{font-size:14px;font-weight:600;color:var(--color-text-primary);margin-bottom:4px}
+.mv-card-meta{font-size:12px;color:var(--color-text-secondary);margin-bottom:6px}
+.mv-card-notes{font-size:12px;color:#888;background:var(--color-background-secondary);padding:7px 10px;border-radius:6px;margin-top:6px}
+.mv-badge{display:inline-flex;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600}
+.mv-badge-blue{background:#dbeafe;color:#1e40af}.mv-badge-green{background:#dcfce7;color:#166534}
+.mv-badge-amber{background:#fef3c7;color:#92400e}.mv-badge-red{background:#fee2e2;color:#991b1b}
+.mv-badge-gray{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.mv-urgency-pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px}
+.mv-today-pill{background:#fee2e2;color:#991b1b}.mv-tomorrow-pill{background:#fef3c7;color:#92400e}
+.mv-empty{padding:40px;text-align:center;color:var(--color-text-tertiary);font-size:13px;background:var(--color-background-secondary);border-radius:12px}
+.mv-divider{font-size:11px;font-weight:600;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 6px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:10px}
+</style>
+
+<div class="lt-page">
+  <lt-sidebar [unreadCount]="unreadCount"></lt-sidebar>
+  <div class="lt-main">
+    <div class="lt-topbar">
+      <div class="lt-breadcrumb">
+        <span class="current">LifeTrack</span><span class="sep">/</span>
+        <span class="current">My Visits</span>
+      </div>
+    </div>
+    <div class="lt-content">
+
+      <div style="font-size:22px;font-weight:700;color:var(--color-text-primary);margin-bottom:4px">My Visits</div>
+      <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:20px">Your scheduled and past visit history</div>
+
+      <!-- KPI row -->
+      <div class="mv-kpi-row">
+        <div class="mv-kpi blue">
+          <div class="mv-kpi-val">{{ upcomingCount }}</div>
+          <div class="mv-kpi-lbl">Upcoming</div>
+        </div>
+        <div class="mv-kpi green">
+          <div class="mv-kpi-val">{{ attendedVisits }}</div>
+          <div class="mv-kpi-lbl">Attended</div>
+        </div>
+        <div class="mv-kpi red">
+          <div class="mv-kpi-val">{{ missedVisits }}</div>
+          <div class="mv-kpi-lbl">Missed</div>
+        </div>
+        <div class="mv-kpi amber">
+          <div class="mv-kpi-val">{{ totalVisits }}</div>
+          <div class="mv-kpi-lbl">Total</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="mv-tabs">
+        <button class="mv-tab" [class.active]="activeTab==='upcoming'" (click)="switchTab('upcoming')">
+          Upcoming ({{ upcomingCount }})
+        </button>
+        <button class="mv-tab" [class.active]="activeTab==='past'" (click)="switchTab('past')">
+          Past
+        </button>
+        <button class="mv-tab" [class.active]="activeTab==='all'" (click)="switchTab('all')">
+          All ({{ totalVisits }})
+        </button>
+      </div>
+
+      <!-- Search -->
+      <input class="mv-search" type="text" placeholder="🔍 Search by visit name or notes..."
+        [(ngModel)]="searchQuery" (ngModelChange)="applyFilter()" />
+
+      <div class="lt-loading-row" *ngIf="isLoading"><span class="lt-spinner"></span> Loading...</div>
+
+      <!-- Visit cards -->
+      <ng-container *ngIf="!isLoading">
+        <div *ngIf="filtered.length === 0" class="mv-empty">
+          {{ activeTab === 'upcoming' ? 'No upcoming visits scheduled.' : 'No visits found.' }}
+        </div>
+
+        <div *ngFor="let v of filtered" class="mv-card" [class]="urgencyClass(v)">
+          <div class="mv-date-block">
+            <div class="mv-date-day">{{ v.visitDate | date:'dd' }}</div>
+            <div class="mv-date-month">{{ v.visitDate | date:'MMM yyyy' }}</div>
+          </div>
+          <div style="flex:1">
+            <div class="mv-card-title">
+              {{ v.notes || ('Visit on ' + (v.visitDate | date:'dd MMM')) }}
+              <span class="mv-urgency-pill mv-today-pill" *ngIf="isToday(v.visitDate)">Today</span>
+              <span class="mv-urgency-pill mv-tomorrow-pill" *ngIf="isTomorrow(v.visitDate)">Tomorrow</span>
+            </div>
+            <div class="mv-card-meta">
+              <span [class]="'mv-badge ' + visitStatusClass(v.status)">{{ v.status }}</span>
+            </div>
+            <div class="mv-card-notes" *ngIf="v.notes">📝 {{ v.notes }}</div>
+          </div>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+</div>
