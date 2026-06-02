@@ -1,112 +1,86 @@
-﻿using LifeTrack.ProtocolService.DTOs;
+﻿// ============================================================
+// ProtocolService.API / Services / ProtocolService.cs
+// ============================================================
+
+using LifeTrack.ProtocolService.DTOs;
+using LifeTrack.ProtocolService.Repositories.Interfaces;
 using LifeTrack.ProtocolService.Services.Interfaces;
-using LifeTrack.Shared.Data;
-using LifeTrack.Shared.Models;
+using LifeTrack.Shared.Helpers;
 using LifeTrack.Shared.Wrappers;
-using Microsoft.EntityFrameworkCore;
 
 namespace LifeTrack.ProtocolService.Services
 {
     public class ProtocolService : IProtocolService
     {
-        private readonly LifeTrackDbContext _db;
-        public ProtocolService(LifeTrackDbContext db)
-            => _db = db;
+        private readonly IProtocolRepository _repo;
+        private readonly AuditHttpClient _audit;
 
-        public async Task<ApiResponse<List<ProtocolDto>>>
-            GetAllAsync()
+        public ProtocolService(IProtocolRepository repo, AuditHttpClient audit)
         {
-            var list = await _db.Protocols.ToListAsync();
-            return ApiResponse<List<ProtocolDto>>.Ok(
-                list.Select(MapToDto).ToList());
+            _repo = repo;
+            _audit = audit;
         }
 
-        public async Task<ApiResponse<ProtocolDto>>
-            GetByIdAsync(long id)
+        private static string ComputeStatus(DateTime startDate, DateTime endDate)
         {
-            var p = await _db.Protocols.FindAsync(id);
-            if (p == null)
-                return ApiResponse<ProtocolDto>.Fail(
-                    "Protocol not found.");
-            return ApiResponse<ProtocolDto>.Ok(MapToDto(p));
+            var today = DateTime.Today;
+            if (today > endDate.Date) return "Completed";
+            if (today >= startDate.Date) return "Ongoing";
+            return "Upcoming";
         }
 
-        public async Task<ApiResponse<ProtocolDto>> CreateAsync(
-            CreateProtocolRequest req)
+        public async Task<ApiResponse<List<ProtocolDto>>> GetAllAsync(ProtocolFilterDto filter)
+            => ApiResponse<List<ProtocolDto>>.Ok(await _repo.GetAllAsync(filter));
+
+        public async Task<ApiResponse<ProtocolDto>> GetByIdAsync(long id)
         {
-            var protocol = new Protocol
-            {
-                Title = req.Title,
-                Phase = req.Phase,
-                StartDate = req.StartDate,
-                EndDate = req.EndDate,
-                Status = CalcStatus(
-                    req.StartDate, req.EndDate),
-                InvestigatorID = req.InvestigatorID,
-                PhasesJson = req.PhasesJson
-            };
-
-            _db.Protocols.Add(protocol);
-            await _db.SaveChangesAsync();
-
-            return ApiResponse<ProtocolDto>.Ok(
-                MapToDto(protocol), "Protocol created.");
+            var protocol = await _repo.GetByIdAsync(id);
+            if (protocol == null)
+                return ApiResponse<ProtocolDto>.Fail($"Protocol with ID {id} not found.");
+            return ApiResponse<ProtocolDto>.Ok(protocol);
         }
 
-        public async Task<ApiResponse<ProtocolDto>> UpdateAsync(
-            long id, CreateProtocolRequest req)
+        public async Task<ApiResponse<ProtocolDto>> CreateAsync(CreateProtocolRequest req)
         {
-            var p = await _db.Protocols.FindAsync(id);
-            if (p == null)
-                return ApiResponse<ProtocolDto>.Fail(
-                    "Protocol not found.");
+            var computedStatus = ComputeStatus(req.StartDate, req.EndDate);
+            var result = await _repo.CreateAsync(req, computedStatus);
 
-            p.Title = req.Title;
-            p.Phase = req.Phase;
-            p.StartDate = req.StartDate;
-            p.EndDate = req.EndDate;
-            p.Status = CalcStatus(
-                req.StartDate, req.EndDate);
-            p.InvestigatorID = req.InvestigatorID;
-            p.PhasesJson = req.PhasesJson;
+            _audit.Log("CREATE", "Protocol", result.ProtocolID,
+                $"Protocol '{result.Title}' created with status '{result.Status}'.");
 
-            await _db.SaveChangesAsync();
-            return ApiResponse<ProtocolDto>.Ok(
-                MapToDto(p), "Protocol updated.");
+            return ApiResponse<ProtocolDto>.Ok(result);
+        }
+
+        public async Task<ApiResponse<bool>> UpdateAsync(long id, UpdateProtocolRequest req)
+        {
+            var existing = await _repo.GetByIdAsync(id);
+            if (existing == null)
+                return ApiResponse<bool>.Fail($"Protocol with ID {id} not found.");
+
+            var computedStatus = ComputeStatus(req.StartDate, req.EndDate);
+            var success = await _repo.UpdateAsync(id, req, computedStatus);
+
+            if (success)
+                _audit.Log("UPDATE", "Protocol", id,
+                    $"Protocol '{req.Title}' updated. Status: '{computedStatus}'.");
+
+            return success
+                ? ApiResponse<bool>.Ok(true)
+                : ApiResponse<bool>.Fail("Update failed.");
         }
 
         public async Task<ApiResponse<bool>> DeleteAsync(long id)
         {
-            var p = await _db.Protocols.FindAsync(id);
-            if (p == null)
-                return ApiResponse<bool>.Fail(
-                    "Protocol not found.");
+            var existing = await _repo.GetByIdAsync(id);
+            var deleted = await _repo.DeleteAsync(id);
 
-            _db.Protocols.Remove(p);
-            await _db.SaveChangesAsync();
-            return ApiResponse<bool>.Ok(
-                true, "Protocol deleted.");
+            if (deleted)
+                _audit.Log("DELETE", "Protocol", id,
+                    $"Protocol '{existing?.Title}' deleted.");
+
+            return deleted
+                ? ApiResponse<bool>.Ok(true)
+                : ApiResponse<bool>.Fail($"Protocol with ID {id} not found.");
         }
-
-        private static string CalcStatus(
-            DateTime start, DateTime end)
-        {
-            var now = DateTime.UtcNow;
-            if (now < start) return "Upcoming";
-            if (now > end) return "Completed";
-            return "Ongoing";
-        }
-
-        private static ProtocolDto MapToDto(Protocol p) => new()
-        {
-            ProtocolID = p.ProtocolID,
-            Title = p.Title,
-            Phase = p.Phase,
-            StartDate = p.StartDate,
-            EndDate = p.EndDate,
-            Status = p.Status,
-            InvestigatorID = p.InvestigatorID,
-            PhasesJson = p.PhasesJson
-        };
     }
 }

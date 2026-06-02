@@ -1,132 +1,75 @@
-﻿using LifeTrack.Shared.Data;
+﻿// ============================================================
+// UserService.API / Services / UserService.cs
+// ============================================================
+
+using LifeTrack.Shared.Helpers;
 using LifeTrack.Shared.Wrappers;
 using LifeTrack.UserService.DTOs;
+using LifeTrack.UserService.Repositories.Interfaces;
 using LifeTrack.UserService.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace LifeTrack.UserService.Services
 {
     public class UserService : IUserService
     {
-        private readonly LifeTrackDbContext _db;
-        public UserService(LifeTrackDbContext db) => _db = db;
+        private readonly IUserRepository _repo;
+        private readonly AuditHttpClient _audit;
 
-        public async Task<ApiResponse<List<UserDto>>> GetAllAsync()
+        public UserService(IUserRepository repo, AuditHttpClient audit)
         {
-            var users = await _db.Users
-                .Where(u => u.RoleID != 4)
-                .ToListAsync();
-
-            var roles = await _db.Roles.ToListAsync();
-            var roleMap = roles.ToDictionary(
-                r => r.RoleID, r => r.RoleName);
-
-            var dtos = users.Select(u => new UserDto
-            {
-                UserID = u.UserID,
-                Name = u.Name,
-                Email = u.Email,
-                Phone = u.Phone,
-                RoleID = u.RoleID,
-                RoleName = roleMap.TryGetValue(
-                    u.RoleID, out var rn) ? rn : "Unknown",
-                IsActive = u.IsActive
-            }).ToList();
-
-            return ApiResponse<List<UserDto>>.Ok(dtos);
+            _repo = repo;
+            _audit = audit;
         }
 
-        public async Task<ApiResponse<UserDto>> GetByIdAsync(
-            long id)
+        public async Task<ApiResponse<List<UserDto>>> GetAllAsync(UserFilterDto filter)
+            => ApiResponse<List<UserDto>>.Ok(await _repo.GetAllAsync(filter));
+
+        public async Task<ApiResponse<UserDto>> GetByIdAsync(long id)
         {
-            var user = await _db.Users.FindAsync(id);
-            if (user == null)
-                return ApiResponse<UserDto>.Fail(
-                    "User not found.");
-
-            var role = await _db.Roles.FindAsync(user.RoleID);
-
-            return ApiResponse<UserDto>.Ok(new UserDto
-            {
-                UserID = user.UserID,
-                Name = user.Name,
-                Email = user.Email,
-                Phone = user.Phone,
-                RoleID = user.RoleID,
-                RoleName = role?.RoleName ?? "Unknown",
-                IsActive = user.IsActive
-            });
+            var user = await _repo.GetByIdAsync(id);
+            return user == null
+                ? ApiResponse<UserDto>.Fail("User not found.")
+                : ApiResponse<UserDto>.Ok(user);
         }
 
-        public async Task<ApiResponse<UserDto>> UpdateAsync(
-            long id, UpdateUserRequest req)
+        public async Task<ApiResponse<UserDto>> UpdateAsync(long id, UpdateUserRequest req)
         {
-            var user = await _db.Users.FindAsync(id);
-            if (user == null)
-                return ApiResponse<UserDto>.Fail(
-                    "User not found.");
+            var updated = await _repo.UpdateAsync(id, req);
+            if (!updated)
+                return ApiResponse<UserDto>.Fail("User not found.");
 
-            user.Name = req.Name;
-            user.Email = req.Email;
-            user.Phone = req.Phone;
-            user.RoleID = req.RoleID;
+            var user = await _repo.GetByIdAsync(id);
 
-            await _db.SaveChangesAsync();
+            _audit.Log("UPDATE", "User", id,
+                $"User '{req.Name}' ({req.Email}) updated. Role: '{req.RoleID}'.");
 
-            var role = await _db.Roles.FindAsync(user.RoleID);
-
-            return ApiResponse<UserDto>.Ok(new UserDto
-            {
-                UserID = user.UserID,
-                Name = user.Name,
-                Email = user.Email,
-                Phone = user.Phone,
-                RoleID = user.RoleID,
-                RoleName = role?.RoleName ?? "Unknown",
-                IsActive = user.IsActive
-            }, "User updated.");
+            return ApiResponse<UserDto>.Ok(user!, "User updated successfully.");
         }
 
-        public async Task<ApiResponse<UserDto>> ToggleActiveAsync(
-            long id)
+        public async Task<ApiResponse<UserDto>> ToggleActiveAsync(long id)
         {
-            var user = await _db.Users.FindAsync(id);
-            if (user == null)
-                return ApiResponse<UserDto>.Fail(
-                    "User not found.");
+            var toggled = await _repo.ToggleActiveAsync(id);
+            if (!toggled)
+                return ApiResponse<UserDto>.Fail("User not found.");
 
-            user.IsActive = !user.IsActive;
-            await _db.SaveChangesAsync();
+            var user = await _repo.GetByIdAsync(id);
+            var msg = user!.IsActive ? "User activated." : "User deactivated.";
 
-            var role = await _db.Roles.FindAsync(user.RoleID);
+            _audit.Log("UPDATE", "User", id,
+                $"User '{user.Name}' ({user.Email}) {(user.IsActive ? "activated" : "deactivated")}.");
 
-            return ApiResponse<UserDto>.Ok(new UserDto
-            {
-                UserID = user.UserID,
-                Name = user.Name,
-                Email = user.Email,
-                Phone = user.Phone,
-                RoleID = user.RoleID,
-                RoleName = role?.RoleName ?? "Unknown",
-                IsActive = user.IsActive
-            }, user.IsActive ? "User activated."
-                             : "User deactivated.");
+            return ApiResponse<UserDto>.Ok(user, msg);
         }
 
         public async Task<ApiResponse<bool>> DeleteAsync(long id)
         {
-            var user = await _db.Users.FindAsync(id);
-            if (user == null)
-                return ApiResponse<bool>.Fail(
-                    "User not found.");
+            var existing = await _repo.GetByIdAsync(id);
+            await _repo.DeleteAsync(id);
 
-            if (user.IsActive)
-                return ApiResponse<bool>.Fail(
-                    "Deactivate user first before deleting.");
+            _audit.Log("DELETE", "User", id,
+                $"User '{existing?.Name}' ({existing?.Email}) deleted.");
 
-            _db.Users.Remove(user);
-            await _db.SaveChangesAsync();
-            return ApiResponse<bool>.Ok(true, "User deleted.");
+            return ApiResponse<bool>.Ok(true, "User deleted successfully.");
         }
     }
 }

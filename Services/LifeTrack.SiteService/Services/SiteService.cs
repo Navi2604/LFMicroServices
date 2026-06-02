@@ -1,89 +1,59 @@
-﻿using LifeTrack.Shared.Data;
-using LifeTrack.Shared.Models;
+﻿// ============================================================
+// SiteService.API / Services / SiteService.cs
+// ============================================================
+
+using LifeTrack.Shared.Helpers;
 using LifeTrack.Shared.Wrappers;
 using LifeTrack.SiteService.DTOs;
+using LifeTrack.SiteService.Repositories.Interfaces;
 using LifeTrack.SiteService.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace LifeTrack.SiteService.Services
 {
     public class SiteService : ISiteService
     {
-        private readonly LifeTrackDbContext _db;
-        public SiteService(LifeTrackDbContext db) => _db = db;
+        private readonly ISiteRepository _repo;
+        private readonly AuditHttpClient _audit;
 
-        public async Task<ApiResponse<List<SiteDto>>> GetAllAsync()
+        public SiteService(ISiteRepository repo, AuditHttpClient audit)
         {
-            var list = await _db.Sites.ToListAsync();
-            return ApiResponse<List<SiteDto>>.Ok(
-                list.Select(MapToDto).ToList());
+            _repo = repo;
+            _audit = audit;
         }
 
-        public async Task<ApiResponse<SiteDto>> GetByIdAsync(
-            long id)
+        public async Task<ApiResponse<List<SiteDto>>> GetAllAsync(SiteFilterDto filter)
+            => ApiResponse<List<SiteDto>>.Ok(await _repo.GetAllAsync(filter));
+
+        public async Task<ApiResponse<SiteDto>> GetByIdAsync(long id)
         {
-            var s = await _db.Sites.FindAsync(id);
-            if (s == null)
-                return ApiResponse<SiteDto>.Fail(
-                    "Site not found.");
-            return ApiResponse<SiteDto>.Ok(MapToDto(s));
+            var s = await _repo.GetByIdAsync(id);
+            return s == null
+                ? ApiResponse<SiteDto>.Fail("Site not found.")
+                : ApiResponse<SiteDto>.Ok(s);
         }
 
-        public async Task<ApiResponse<SiteDto>> CreateAsync(
-            CreateSiteRequest req)
+        public async Task<ApiResponse<SiteDto>> CreateAsync(CreateSiteRequest req)
         {
-            var site = new Site
-            {
-                Name = req.Name,
-                Location = req.Location,
-                InvestigatorID = req.InvestigatorID,
-                ProtocolID = req.ProtocolID,
-                Status = req.Status
-            };
-            _db.Sites.Add(site);
-            await _db.SaveChangesAsync();
-            return ApiResponse<SiteDto>.Ok(
-                MapToDto(site), "Site created.");
-        }
+            var site = await _repo.CreateAsync(req);
 
-        public async Task<ApiResponse<SiteDto>> UpdateAsync(
-            long id, CreateSiteRequest req)
-        {
-            var s = await _db.Sites.FindAsync(id);
-            if (s == null)
-                return ApiResponse<SiteDto>.Fail(
-                    "Site not found.");
+            _audit.Log("CREATE", "Site", site.SiteID,
+                $"Site '{site.Name}' at '{site.Location}' created with status '{site.Status}'.");
 
-            s.Name = req.Name;
-            s.Location = req.Location;
-            s.InvestigatorID = req.InvestigatorID;
-            s.ProtocolID = req.ProtocolID;
-            s.Status = req.Status;
-
-            await _db.SaveChangesAsync();
-            return ApiResponse<SiteDto>.Ok(
-                MapToDto(s), "Site updated.");
+            return ApiResponse<SiteDto>.Ok(site, "Site created successfully.");
         }
 
         public async Task<ApiResponse<bool>> DeleteAsync(long id)
         {
-            var s = await _db.Sites.FindAsync(id);
-            if (s == null)
-                return ApiResponse<bool>.Fail(
-                    "Site not found.");
-            _db.Sites.Remove(s);
-            await _db.SaveChangesAsync();
-            return ApiResponse<bool>.Ok(true, "Site deleted.");
-        }
+            var existing = await _repo.GetByIdAsync(id);
+            var deleted = await _repo.DeleteAsync(id);
 
-        private static SiteDto MapToDto(Site s) => new()
-        {
-            SiteID = s.SiteID,
-            Name = s.Name,
-            Location = s.Location,
-            InvestigatorID = s.InvestigatorID,
-            ProtocolID = s.ProtocolID,
-            Status = s.Status
-        };
+            if (deleted)
+                _audit.Log("DELETE", "Site", id,
+                    $"Site '{existing?.Name}' deleted.");
+
+            return deleted
+                ? ApiResponse<bool>.Ok(true, "Site deleted successfully.")
+                : ApiResponse<bool>.Fail("Site not found.");
+        }
     }
 }

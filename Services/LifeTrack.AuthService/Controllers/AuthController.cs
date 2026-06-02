@@ -1,6 +1,9 @@
-﻿using LifeTrack.AuthService.DTOs;
+﻿// ============================================================
+// AuthService.API / Controllers / AuthController.cs
+// ============================================================
+
+using LifeTrack.AuthService.DTOs;
 using LifeTrack.AuthService.Services.Interfaces;
-using LifeTrack.Shared.Wrappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,80 +13,44 @@ namespace LifeTrack.AuthService.Controllers
     [Route("api/auth")]
     public class AuthController : ControllerBase
     {
-        private readonly IAuthService _authService;
+        private readonly IAuthService _service;
 
-        public AuthController(IAuthService authService)
-            => _authService = authService;
+        public AuthController(IAuthService service) => _service = service;
 
         // POST /api/auth/login
         [HttpPost("login")]
         [AllowAnonymous]
-        public async Task<IActionResult> Login(
-            [FromBody] LoginRequest req)
+        public async Task<IActionResult> Login([FromBody] LoginRequest req)
         {
-            var result = await _authService.LoginAsync(req);
-            return result.Success
-                ? Ok(result)
-                : Unauthorized(result);
+            var result = await _service.LoginAsync(req);
+            return result.Success ? Ok(result) : Unauthorized(result);
         }
 
-        // POST /api/auth/register (patient)
+        // POST /api/auth/login-patient
+        [HttpPost("login-patient")]
+        [AllowAnonymous]
+        public async Task<IActionResult> LoginPatient([FromBody] LoginRequest req)
+        {
+            var result = await _service.LoginPatientAsync(req);
+            return result.Success ? Ok(result) : Unauthorized(result);
+        }
+
+        // POST /api/auth/register
         [HttpPost("register")]
         [AllowAnonymous]
-        public async Task<IActionResult> Register(
-            [FromBody] RegisterRequest req)
+        public async Task<IActionResult> Register([FromBody] RegisterPatientRequest req)
         {
-            if (string.IsNullOrWhiteSpace(req.Password)
-                || req.Password.Length < 8)
-                return BadRequest(
-                    ApiResponse<object>.Fail(
-                        "Password must be at least 8 characters."));
-
-            var result = await _authService.RegisterAsync(req);
-            return result.Success
-                ? Ok(result)
-                : BadRequest(result);
+            var result = await _service.RegisterPatientAsync(req);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        // POST /api/auth/create-staff (Admin only)
+        // POST /api/auth/create-staff
         [HttpPost("create-staff")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> CreateStaff(
-            [FromBody] CreateStaffRequest req)
+        public async Task<IActionResult> CreateStaff([FromBody] CreateStaffRequest req)
         {
-            if (string.IsNullOrWhiteSpace(req.Password)
-                || req.Password.Length < 8)
-                return BadRequest(
-                    ApiResponse<object>.Fail(
-                        "Password must be at least 8 characters."));
-
-            var result = await _authService
-                .CreateStaffAsync(req);
-            return result.Success
-                ? Ok(result)
-                : BadRequest(result);
-        }
-
-        // GET /api/auth/me
-        [HttpGet("me")]
-        [Authorize]
-        public IActionResult Me()
-        {
-            var id = User.FindFirst(
-                System.Security.Claims.ClaimTypes
-                    .NameIdentifier)?.Value;
-            var name = User.FindFirst(
-                System.Security.Claims.ClaimTypes
-                    .Name)?.Value;
-            var email = User.FindFirst(
-                System.Security.Claims.ClaimTypes
-                    .Email)?.Value;
-            var role = User.FindFirst(
-                System.Security.Claims.ClaimTypes
-                    .Role)?.Value;
-
-            return Ok(ApiResponse<object>.Ok(
-                new { id, name, email, role }));
+            var result = await _service.CreateStaffAsync(req);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
     }
 }

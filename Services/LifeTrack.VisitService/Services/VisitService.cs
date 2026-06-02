@@ -1,99 +1,72 @@
-﻿using LifeTrack.Shared.Data;
-using LifeTrack.Shared.Models;
+﻿// ============================================================
+// VisitService.API / Services / VisitService.cs
+// ============================================================
+
+using LifeTrack.Shared.Helpers;
 using LifeTrack.Shared.Wrappers;
 using LifeTrack.VisitService.DTOs;
+using LifeTrack.VisitService.Repositories.Interfaces;
 using LifeTrack.VisitService.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace LifeTrack.VisitService.Services
 {
     public class VisitService : IVisitService
     {
-        private readonly LifeTrackDbContext _db;
-        public VisitService(LifeTrackDbContext db) => _db = db;
+        private readonly IVisitRepository _repo;
+        private readonly AuditHttpClient _audit;
 
-        public async Task<ApiResponse<List<VisitDto>>> GetAllAsync()
+        public VisitService(IVisitRepository repo, AuditHttpClient audit)
         {
-            var list = await _db.Visits.ToListAsync();
-            return ApiResponse<List<VisitDto>>.Ok(
-                list.Select(MapToDto).ToList());
+            _repo = repo;
+            _audit = audit;
         }
 
-        public async Task<ApiResponse<List<VisitDto>>>
-            GetByPatientAsync(long patientId)
+        public async Task<ApiResponse<List<VisitDto>>> GetAllAsync(VisitFilterDto filter)
+            => ApiResponse<List<VisitDto>>.Ok(await _repo.GetAllAsync(filter));
+
+        public async Task<ApiResponse<VisitDto>> GetByIdAsync(long id)
         {
-            var list = await _db.Visits
-                .Where(v => v.PatientID == patientId)
-                .ToListAsync();
-            return ApiResponse<List<VisitDto>>.Ok(
-                list.Select(MapToDto).ToList());
+            var v = await _repo.GetByIdAsync(id);
+            return v == null
+                ? ApiResponse<VisitDto>.Fail("Visit not found.")
+                : ApiResponse<VisitDto>.Ok(v);
         }
 
-        public async Task<ApiResponse<VisitDto>> GetByIdAsync(
-            long id)
+        public async Task<ApiResponse<VisitDto>> CreateAsync(CreateVisitRequest req)
         {
-            var v = await _db.Visits.FindAsync(id);
-            if (v == null)
-                return ApiResponse<VisitDto>.Fail(
-                    "Visit not found.");
-            return ApiResponse<VisitDto>.Ok(MapToDto(v));
+            var visit = await _repo.CreateAsync(req);
+
+            _audit.Log("CREATE", "Visit", visit.VisitID,
+                $"Visit scheduled for patient '{visit.PatientName}' " +
+                $"on {visit.VisitDate:dd MMM yyyy}. Status: '{visit.Status}'.");
+
+            return ApiResponse<VisitDto>.Ok(visit, "Visit scheduled successfully.");
         }
 
-        public async Task<ApiResponse<VisitDto>> CreateAsync(
-            CreateVisitRequest req)
+        public async Task<ApiResponse<bool>> UpdateStatusAsync(long id, string status)
         {
-            var visit = new Visit
-            {
-                PatientID = req.PatientID,
-                ProtocolID = req.ProtocolID,
-                VisitDate = req.VisitDate,
-                Status = req.Status,
-                Notes = req.Notes
-            };
-            _db.Visits.Add(visit);
-            await _db.SaveChangesAsync();
-            return ApiResponse<VisitDto>.Ok(
-                MapToDto(visit), "Visit created.");
-        }
+            var updated = await _repo.UpdateStatusAsync(id, status);
 
-        public async Task<ApiResponse<VisitDto>> UpdateAsync(
-            long id, CreateVisitRequest req)
-        {
-            var v = await _db.Visits.FindAsync(id);
-            if (v == null)
-                return ApiResponse<VisitDto>.Fail(
-                    "Visit not found.");
+            if (updated)
+                _audit.Log("UPDATE", "Visit", id,
+                    $"Visit status updated to '{status}'.");
 
-            v.PatientID = req.PatientID;
-            v.ProtocolID = req.ProtocolID;
-            v.VisitDate = req.VisitDate;
-            v.Status = req.Status;
-            v.Notes = req.Notes;
-
-            await _db.SaveChangesAsync();
-            return ApiResponse<VisitDto>.Ok(
-                MapToDto(v), "Visit updated.");
+            return updated
+                ? ApiResponse<bool>.Ok(true, "Visit status updated.")
+                : ApiResponse<bool>.Fail("Visit not found.");
         }
 
         public async Task<ApiResponse<bool>> DeleteAsync(long id)
         {
-            var v = await _db.Visits.FindAsync(id);
-            if (v == null)
-                return ApiResponse<bool>.Fail(
-                    "Visit not found.");
-            _db.Visits.Remove(v);
-            await _db.SaveChangesAsync();
-            return ApiResponse<bool>.Ok(true, "Visit deleted.");
-        }
+            var deleted = await _repo.DeleteAsync(id);
 
-        private static VisitDto MapToDto(Visit v) => new()
-        {
-            VisitID = v.VisitID,
-            PatientID = v.PatientID,
-            ProtocolID = v.ProtocolID,
-            VisitDate = v.VisitDate,
-            Status = v.Status,
-            Notes = v.Notes
-        };
+            if (deleted)
+                _audit.Log("DELETE", "Visit", id,
+                    $"Visit ID {id} deleted.");
+
+            return deleted
+                ? ApiResponse<bool>.Ok(true, "Visit deleted successfully.")
+                : ApiResponse<bool>.Fail("Visit not found.");
+        }
     }
 }

@@ -1,100 +1,59 @@
-﻿using LifeTrack.PatientService.DTOs;
+﻿// ============================================================
+// PatientService.API / Services / PatientService.cs
+// ============================================================
+
+using LifeTrack.PatientService.DTOs;
+using LifeTrack.PatientService.Repositories.Interfaces;
 using LifeTrack.PatientService.Services.Interfaces;
-using LifeTrack.Shared.Data;
-using LifeTrack.Shared.Models;
+using LifeTrack.Shared.Helpers;
 using LifeTrack.Shared.Wrappers;
-using Microsoft.EntityFrameworkCore;
 
 namespace LifeTrack.PatientService.Services
 {
     public class PatientService : IPatientService
     {
-        private readonly LifeTrackDbContext _db;
-        public PatientService(LifeTrackDbContext db)
-            => _db = db;
+        private readonly IPatientRepository _repo;
+        private readonly AuditHttpClient _audit;
 
-        public async Task<ApiResponse<List<PatientDto>>>
-            GetAllAsync()
+        public PatientService(IPatientRepository repo, AuditHttpClient audit)
         {
-            var list = await _db.Patients.ToListAsync();
-            return ApiResponse<List<PatientDto>>.Ok(
-                list.Select(MapToDto).ToList());
+            _repo = repo;
+            _audit = audit;
         }
 
-        public async Task<ApiResponse<PatientDto>>
-            GetByIdAsync(long id)
+        public async Task<ApiResponse<List<PatientDto>>> GetAllAsync(PatientFilterDto filter)
+            => ApiResponse<List<PatientDto>>.Ok(await _repo.GetAllAsync(filter));
+
+        public async Task<ApiResponse<PatientDto>> GetByIdAsync(long id)
         {
-            var p = await _db.Patients.FindAsync(id);
-            if (p == null)
-                return ApiResponse<PatientDto>.Fail(
-                    "Patient not found.");
-            return ApiResponse<PatientDto>.Ok(MapToDto(p));
+            var p = await _repo.GetByIdAsync(id);
+            return p == null
+                ? ApiResponse<PatientDto>.Fail("Patient not found.")
+                : ApiResponse<PatientDto>.Ok(p);
         }
 
-        public async Task<ApiResponse<PatientDto>> EnrollAsync(
-            EnrollPatientRequest req, long investigatorId)
+        public async Task<ApiResponse<PatientDto>> CreateAsync(CreatePatientRequest req)
         {
-            // Check email not already used
-            var exists = await _db.Patients.AnyAsync(p =>
-                p.Email != null &&
-                p.Email.ToLower() == req.Email.ToLower());
-            if (exists)
-                return ApiResponse<PatientDto>.Fail(
-                    "Email already registered.");
+            var patient = await _repo.CreateAsync(req);
 
-            var patient = new Patient
-            {
-                Name = req.Name,
-                Email = req.Email,
-                DOB = req.DOB,
-                ContactInfo = req.ContactInfo,
-                EnrollmentStatus = "Active",
-                EnrolledBy = investigatorId
-            };
+            _audit.Log("CREATE", "Patient", patient.PatientID,
+                $"Patient '{patient.Name}' ({patient.Email}) registered.");
 
-            _db.Patients.Add(patient);
-            await _db.SaveChangesAsync();
-
-            return ApiResponse<PatientDto>.Ok(
-                MapToDto(patient), "Patient enrolled.");
-        }
-
-        public async Task<ApiResponse<PatientDto>>
-            UpdateStatusAsync(long id, UpdateStatusRequest req)
-        {
-            var p = await _db.Patients.FindAsync(id);
-            if (p == null)
-                return ApiResponse<PatientDto>.Fail(
-                    "Patient not found.");
-
-            p.EnrollmentStatus = req.EnrollmentStatus;
-            await _db.SaveChangesAsync();
-
-            return ApiResponse<PatientDto>.Ok(
-                MapToDto(p), "Status updated.");
+            return ApiResponse<PatientDto>.Ok(patient, "Patient created successfully.");
         }
 
         public async Task<ApiResponse<bool>> DeleteAsync(long id)
         {
-            var p = await _db.Patients.FindAsync(id);
-            if (p == null)
-                return ApiResponse<bool>.Fail(
-                    "Patient not found.");
+            var existing = await _repo.GetByIdAsync(id);
+            var deleted = await _repo.DeleteAsync(id);
 
-            _db.Patients.Remove(p);
-            await _db.SaveChangesAsync();
-            return ApiResponse<bool>.Ok(true, "Patient deleted.");
+            if (deleted)
+                _audit.Log("DELETE", "Patient", id,
+                    $"Patient '{existing?.Name}' deleted.");
+
+            return deleted
+                ? ApiResponse<bool>.Ok(true, "Patient deleted successfully.")
+                : ApiResponse<bool>.Fail("Patient not found.");
         }
-
-        private static PatientDto MapToDto(Patient p) => new()
-        {
-            PatientID = p.PatientID,
-            Name = p.Name,
-            DOB = p.DOB,
-            ContactInfo = p.ContactInfo,
-            Email = p.Email,
-            EnrollmentStatus = p.EnrollmentStatus,
-            EnrolledBy = p.EnrolledBy
-        };
     }
 }

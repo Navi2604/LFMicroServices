@@ -1,10 +1,17 @@
 <Solution>
-  <Project Path="Services/LifeTrack.AuditService/LifeTrack.AuditService.csproj" Id="0992847f-6b4b-4d3f-a908-0ca942fc5c87" />
-  <Project Path="Services/LifeTrack.AuthService/LifeTrack.AuthService.csproj" Id="4f27bd82-5314-417d-b724-ad01534733bf" />
-  <Project Path="Services/LifeTrack.PatientService/LifeTrack.PatientService.csproj" Id="29595253-5b72-4324-b162-6f45e9968e52" />
-  <Project Path="Services/LifeTrack.ProtocolService/LifeTrack.ProtocolService.csproj" Id="9d67f05e-0abe-47bf-bf80-4a03f2cbc6e1" />
-  <Project Path="Services/LifeTrack.SiteService/LifeTrack.SiteService.csproj" Id="b50f0b45-d808-49bb-9c18-1f4e490479ff" />
-  <Project Path="Services/LifeTrack.UserService/LifeTrack.UserService.csproj" Id="a8b700c6-e0e0-4722-afa5-c16f30b51630" />
-  <Project Path="Services/LifeTrack.VisitService/LifeTrack.VisitService.csproj" Id="bda0ddff-768e-4a4a-8d73-472822d7fe66" />
-  <Project Path="Shared/LifeTrack.Shared/LifeTrack.Shared.csproj" Id="90eb0c1f-7f50-4021-b811-ff49e23f30f6" />
+  <Folder Name="/Gateway/">
+    <Project Path="Gateway/LifeTrack.Gateway/Gateway.API.csproj" Id="7a1f0a74-3d59-4668-80ad-ccb9ebcc4191" />
+  </Folder>
+  <Folder Name="/Microservices/">
+    <Project Path="Services/LifeTrack.AuditService/AuditService.API.csproj" Id="0992847f-6b4b-4d3f-a908-0ca942fc5c87" />
+    <Project Path="Services/LifeTrack.AuthService/AuthService.API.csproj" Id="4f27bd82-5314-417d-b724-ad01534733bf" />
+    <Project Path="Services/LifeTrack.PatientService/PatientService.API.csproj" Id="29595253-5b72-4324-b162-6f45e9968e52" />
+    <Project Path="Services/LifeTrack.ProtocolService/ProtocolService.API.csproj" Id="9d67f05e-0abe-47bf-bf80-4a03f2cbc6e1" />
+    <Project Path="Services/LifeTrack.SiteService/SiteService.API.csproj" Id="b50f0b45-d808-49bb-9c18-1f4e490479ff" />
+    <Project Path="Services/LifeTrack.UserService/UserService.API.csproj" Id="a8b700c6-e0e0-4722-afa5-c16f30b51630" />
+    <Project Path="Services/LifeTrack.VisitService/VisitService.API.csproj" Id="bda0ddff-768e-4a4a-8d73-472822d7fe66" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="Shared/LifeTrack.Shared/Shared.CL.csproj" Id="90eb0c1f-7f50-4021-b811-ff49e23f30f6" />
+  </Folder>
 </Solution>

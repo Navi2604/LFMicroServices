@@ -1,6 +1,12 @@
-﻿using System.Net;
+﻿// ============================================================
+// Shared.CL / Middleware / ExceptionMiddleware.cs
+// Global middleware fallback — catches anything the filter misses
+// ============================================================
+
+using System.Net;
 using System.Text.Json;
 using LifeTrack.Shared.Wrappers;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -28,28 +34,59 @@ namespace LifeTrack.Shared.Middleware
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "Unhandled exception: {Message}", ex.Message);
+                    "Middleware caught unhandled exception on {Method} {Path}",
+                    context.Request.Method,
+                    context.Request.Path);
+
                 await HandleExceptionAsync(context, ex);
             }
         }
 
         private static async Task HandleExceptionAsync(
-            HttpContext context, Exception ex)
+            HttpContext context, Exception exception)
         {
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode =
-                (int)HttpStatusCode.InternalServerError;
+            var (statusCode, message) = exception switch
+            {
+                UnauthorizedAccessException =>
+                    (HttpStatusCode.Unauthorized,
+                     "You are not authorized."),
 
-            var response = ApiResponse<object>.Fail(
-                "An internal server error occurred.", ex.Message);
+                KeyNotFoundException =>
+                    (HttpStatusCode.NotFound,
+                     "The requested resource was not found."),
 
+                ArgumentException =>
+                    (HttpStatusCode.BadRequest,
+                     exception.Message),
+
+                InvalidOperationException =>
+                    (HttpStatusCode.BadRequest,
+                     exception.Message),
+
+                _ =>
+                    (HttpStatusCode.InternalServerError,
+                     "An unexpected error occurred.")
+            };
+
+            var response = ApiResponse<object>.Fail(message);
             var json = JsonSerializer.Serialize(response,
                 new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
 
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = (int)statusCode;
+
             await context.Response.WriteAsync(json);
         }
+    }
+
+    // Extension method for clean registration in Program.cs
+    public static class ExceptionMiddlewareExtensions
+    {
+        public static IApplicationBuilder UseGlobalExceptionHandler(
+            this IApplicationBuilder app)
+            => app.UseMiddleware<ExceptionMiddleware>();
     }
 }

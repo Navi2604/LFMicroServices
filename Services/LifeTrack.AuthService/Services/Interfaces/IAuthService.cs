@@ -1,17 +1,17 @@
-﻿using LifeTrack.AuthService.DTOs;
+﻿// ============================================================
+// AuthService.API / Services / Interfaces / IAuthService.cs
+// ============================================================
+
+using LifeTrack.AuthService.DTOs;
 using LifeTrack.Shared.Wrappers;
 
 namespace LifeTrack.AuthService.Services.Interfaces
 {
     public interface IAuthService
     {
-        Task<ApiResponse<LoginResponse>> LoginAsync(
-            LoginRequest req);
-
-        Task<ApiResponse<UserDto>> RegisterAsync(
-            RegisterRequest req);
-
-        Task<ApiResponse<UserDto>> CreateStaffAsync(
-            CreateStaffRequest req);
+        Task<ApiResponse<LoginResponse>> LoginAsync(LoginRequest request);
+        Task<ApiResponse<LoginResponse>> LoginPatientAsync(LoginRequest request);
+        Task<ApiResponse<bool>> RegisterPatientAsync(RegisterPatientRequest request);
+        Task<ApiResponse<bool>> CreateStaffAsync(CreateStaffRequest request);
     }
 }
